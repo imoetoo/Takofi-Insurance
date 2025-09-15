@@ -17,7 +17,7 @@ console.log(
 );
 
 export default getDefaultConfig({
-  appName: "TSender",
+  appName: "TakoFi",
   projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID!,
   chains: [mainnet, optimism, arbitrum, base, zksync, sepolia, anvil],
   ssr: false,
