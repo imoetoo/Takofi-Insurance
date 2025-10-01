@@ -51,16 +51,20 @@ TakoFi is a next-generation DeFi insurance protocol that allows users to protect
 ```
 ├── contracts/                 # Smart contracts
 │   ├── TokenMinting.sol      # Core protocol logic
-│   ├── FundMe.sol           # Funding mechanisms
-│   └── Lock.sol             # Time-locked contracts
+│   └── MockStablecoin.sol   # Test USDT/USDC contracts
 ├── next-app/                 # Frontend application
 │   ├── src/app/             # Next.js App Router pages
 │   │   ├── insurance-market/ # Insurance marketplace
 │   │   ├── mint-tokens/     # Token minting interface
 │   │   └── principal-market/ # Principal token trading
 │   ├── src/components/      # Reusable UI components
+│   ├── src/hooks/           # Custom React hooks
 │   └── src/styles/          # Styling and themes
 ├── ignition/                # Deployment modules
+│   ├── modules/
+│   │   ├── FullDeployment.js    # Complete system deployment
+│   │   ├── MockStablecoins.js   # Mock token deployment
+│   │   └── ProtocolInsurance.js # Main contract deployment
 ├── test/                    # Smart contract tests
 └── scripts/                 # Utility scripts
 ```
@@ -103,10 +107,21 @@ npx hardhat node
 4. **Deploy contracts** (in new terminal)
 
 ```bash
-npx hardhat ignition deploy ignition/modules/TokenMinting.js --network localhost
+# Option 1: Full deployment (recommended)
+npx hardhat ignition deploy ignition/modules/FullDeployment.js --network localhost
+
+# Option 2: Step-by-step deployment
+npx hardhat ignition deploy ignition/modules/MockStablecoins.js --network localhost
+npx hardhat ignition deploy ignition/modules/ProtocolInsurance.js --network localhost
 ```
 
-5. **Start the frontend** (in new terminal)
+5. **Mint test tokens** (in new terminal)
+
+```bash
+npx hardhat run scripts/mintTokensToAccount.js --network localhost
+```
+
+6. **Start the frontend** (in new terminal)
 
 ```bash
 cd next-app
@@ -114,9 +129,16 @@ npm run dev
 ```
 
 6. **Configure MetaMask**
+
    - Network: Localhost 8545
    - Chain ID: 31337
    - RPC URL: http://127.0.0.1:8545
+   - Add test tokens (USDT/USDC) using addresses from deployment output
+
+7. **Access the application**
+   - Visit `http://localhost:3000`
+   - Connect your wallet
+   - Start minting and trading insurance tokens
 
 ### 🎮 Usage Guide
 
@@ -126,21 +148,27 @@ npm run dev
 - Click "Connect Wallet" to connect via RainbowKit
 - Select your preferred wallet (MetaMask, WalletConnect, etc.)
 
-#### 2. Mint Insurance Tokens
+#### 2. Get Test Tokens
+
+- Run `npx hardhat run scripts/mintTokensToAccount.js --network localhost`
+- Or mint tokens using the deployed MockStablecoin contracts
+- Verify balances with `npx hardhat run scripts/checkBalances.js --network localhost`
+
+#### 3. Mint Insurance Tokens
 
 - Navigate to "Mint Tokens" page
 - Select input token (USDT/USDC) and protocol
 - Enter deposit amount
 - Receive Insurance Tokens (IT) and Principal Tokens (PT)
 
-#### 3. Trade in Insurance Market
+#### 4. Trade in Insurance Market
 
 - Browse available insurance protocols
 - Click on any protocol to view detailed trading interface
 - Use order book to buy/sell insurance tokens
 - Monitor real-time rates and market depth
 
-#### 4. Explore Principal Market
+#### 5. Explore Principal Market
 
 - Trade principal tokens to optimize yields
 - Maintain exposure to underlying assets
@@ -150,39 +178,54 @@ npm run dev
 
 ### Core Contracts
 
-**`ProtocolInsurance.sol`**
+**`TokenMinting.sol` (Main Protocol)**
 
-- Main protocol logic and token management
-- Multi-protocol support with configurable parameters
-- Fee management and owner controls
+- Core protocol logic and token management
+- Multi-protocol support (6 protocols: SushiSwap, Curve Finance, Aave, Uniswap V3, Compound, MakerDAO)
+- Automatic protocol setup in constructor with 0% fees
+- Integrated insurance and principal token creation
 
 **`InsuranceToken.sol` & `PrincipalToken.sol`**
 
 - ERC20 implementations for protocol tokens
 - Mintable/burnable with access controls
-- Protocol-specific token pairs
+- Protocol-specific token pairs (e.g., iAave/pAave)
+
+**`MockStablecoin.sol`**
+
+- Test USDT/USDC implementation for local development
+- 6-decimal precision matching real stablecoins
+- Mintable for testing purposes
 
 **Key Functions:**
 
 - `mintTokens()` - Convert stablecoins to IT/PT pairs
 - `burnTokens()` - Redeem IT/PT for stablecoins
-- `addProtocol()` - Admin function to add new protocols
-- `updateFees()` - Dynamic fee management
+- `getProtocolTokens()` - Get token addresses for a protocol
+- `getUserTokenBalances()` - Check user's token balances
 
 ## 🧪 Development Commands
 
 ```bash
 # Smart Contract Development
-npx hardhat compile                    # Compile contracts
-npx hardhat test                      # Run tests
-npx hardhat node                      # Start local node
-npx hardhat ignition deploy <module>  # Deploy contracts
+npx hardhat compile                           # Compile contracts
+npx hardhat test                             # Run tests
+npx hardhat node                             # Start local node
+
+# Deployment
+npx hardhat ignition deploy ignition/modules/FullDeployment.js --network localhost
+
+# Utility Scripts
+npx hardhat run scripts/mintTokensToAccount.js --network localhost    # Get test tokens
+npx hardhat run scripts/checkBalances.js --network localhost          # Check balances
+npx hardhat run scripts/analyzeBalances.js --network localhost        # Detailed analysis
+npx hardhat run scripts/getTokenAddresses.js --network localhost      # Get token addresses
 
 # Frontend Development
 cd next-app
-npm run dev                           # Start dev server
-npm run build                         # Production build
-npm run dev:clean                     # Clean dev start
+npm run dev                                  # Start dev server
+npm run build                                # Production build
+npm run lint                                 # Lint code
 ```
 
 ## 🔒 Security Features

@@ -46,23 +46,6 @@ export function useTokenMinting() {
     return keccak256(toBytes(protocolName));
   };
 
-  const addProtocol = async (
-    protocolName: string,
-    mintingFee: number = 100
-  ) => {
-    try {
-      return await writeContractAsync({
-        address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
-        abi: TOKEN_MINTING_ABI,
-        functionName: "addProtocol",
-        args: [protocolName, BigInt(mintingFee)],
-      });
-    } catch (err) {
-      console.error("Adding protocol failed:", err);
-      throw err;
-    }
-  };
-
   const burnTokens = async (
     protocolName: string,
     insuranceAmount: string,
@@ -96,7 +79,6 @@ export function useTokenMinting() {
 
   return {
     mintTokens,
-    addProtocol,
     burnTokens,
     getProtocolId,
     isPending,

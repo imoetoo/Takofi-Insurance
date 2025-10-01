@@ -3,7 +3,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { WagmiProvider } from "wagmi";
-import { darkTheme as rainbowDarkTheme, RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import {
+  darkTheme as rainbowDarkTheme,
+  RainbowKitProvider,
+} from "@rainbow-me/rainbowkit";
 import { ThemeProvider } from "@mui/material/styles";
 import { CssBaseline } from "@mui/material";
 import { Toaster } from "react-hot-toast";
@@ -31,25 +34,25 @@ export function Providers(props: { children: ReactNode }) {
               toastOptions={{
                 duration: 4000,
                 style: {
-                  background: '#1f2937',
-                  color: '#fff',
-                  border: '1px solid #374151',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  maxWidth: '400px',
+                  background: "#1f2937",
+                  color: "#fff",
+                  border: "1px solid #374151",
+                  borderRadius: "12px",
+                  fontSize: "14px",
+                  maxWidth: "400px",
                 },
                 success: {
                   duration: 5000,
                   iconTheme: {
-                    primary: '#10b981',
-                    secondary: '#fff',
+                    primary: "#10b981",
+                    secondary: "#fff",
                   },
                 },
                 error: {
                   duration: 6000,
                   iconTheme: {
-                    primary: '#ef4444',
-                    secondary: '#fff',
+                    primary: "#ef4444",
+                    secondary: "#fff",
                   },
                 },
               }}

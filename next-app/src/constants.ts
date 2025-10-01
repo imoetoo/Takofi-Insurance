@@ -21,16 +21,6 @@ export const TOKEN_MINTING_ABI = [
   },
   {
     inputs: [
-      { internalType: "string", name: "protocolName", type: "string" },
-      { internalType: "uint256", name: "mintingFee", type: "uint256" },
-    ],
-    name: "addProtocol",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
       { internalType: "bytes32", name: "protocolId", type: "bytes32" },
       { internalType: "uint256", name: "insuranceAmount", type: "uint256" },
       { internalType: "uint256", name: "principalAmount", type: "uint256" },

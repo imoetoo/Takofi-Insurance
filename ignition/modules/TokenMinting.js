@@ -6,7 +6,7 @@ module.exports = buildModule("TokenMintingModule", (m) => {
   const usdcAddress = "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"; // MockUSDC
 
   // Deploy the ProtocolInsurance contract
-  // Constructor will automatically set up SushiSwap, Uniswap, and Curve protocols
+  // Constructor will automatically set up SushiSwap, Uniswap, Curve, Aave, Compound, MakerDAO protocols
   const protocolInsurance = m.contract("ProtocolInsurance", [
     usdtAddress,
     usdcAddress,
