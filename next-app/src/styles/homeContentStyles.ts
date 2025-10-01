@@ -253,3 +253,57 @@ export const ctaSubtitleStyles: SxProps<Theme> = {
   mx: "auto",
   marginBottom: "3rem",
 };
+
+// Tailwind CSS Class Names
+export const classNames = {
+  // Main container
+  mainContainer: "min-h-screen bg-black text-white",
+
+  // Hero section
+  heroSection:
+    "relative min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black",
+  heroBackgroundPattern: "absolute inset-0 opacity-55",
+  heroBackgroundGradient1:
+    "absolute inset-0 bg-[radial-gradient(circle_at_25%_25%,rgba(59,130,246,0.4),transparent_50%)]",
+  heroBackgroundGradient2:
+    "absolute inset-0 bg-[radial-gradient(circle_at_75%_75%,rgba(139,92,246,0.4),transparent_50%)]",
+
+  // Button containers
+  ctaButtonContainer:
+    "flex flex-col sm:flex-row gap-6 justify-center items-center mb-16",
+  connectButtonContainer: "flex justify-center",
+
+  // Stats grid
+  statsGrid: "grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto",
+  statsItem: "text-center py-4",
+
+  // Features section
+  featuresSection: "py-20 bg-gray-900",
+  featuresGrid: "grid grid-cols-1 md:grid-cols-3 gap-8",
+  featureIconContainer: {
+    blue: "w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6",
+    green:
+      "w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6",
+    purple:
+      "w-16 h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6",
+  },
+
+  // How it works section
+  howItWorksSection: "py-20 bg-black",
+  howItWorksGrid: "grid grid-cols-1 md:grid-cols-3 gap-12",
+  howItWorksItem: "text-center",
+  howItWorksStepIcon: {
+    step1:
+      "w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white",
+    step2:
+      "w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white",
+    step3:
+      "w-20 h-20 bg-gradient-to-r from-pink-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white",
+  },
+
+  // CTA section
+  ctaSection: "py-20 bg-gradient-to-r from-blue-900 via-purple-900 to-pink-900",
+
+  // Common section styles
+  sectionTextCenter: "text-center mb-16",
+};

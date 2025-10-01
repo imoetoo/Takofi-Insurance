@@ -11,14 +11,27 @@ import {
   TextField,
   Divider,
   Stack,
+  CircularProgress,
 } from "@mui/material";
 import { AccessTime, Info } from "@mui/icons-material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAccount, useConfig } from "wagmi";
+import { parseUnits } from "viem";
+import { waitForTransactionReceipt } from "wagmi/actions";
+import toast from "react-hot-toast";
 import CompactTokenSelector from "@/components/CompactTokenSelector";
 import ProtocolSelector from "@/components/ProtocolSelector";
 import * as commonStyles from "@/styles/commonStyles";
 import * as mintStyles from "@/styles/mintTokensStyles";
 import { insuranceListings } from "@/app/insurance-market/insuranceListings";
+import { useTokenMinting } from "@/hooks/useTokenMinting";
+import { useERC20Approval, useERC20Allowance } from "@/hooks/useERC20";
+import {
+  TOKEN_MINTING_CONTRACT_ADDRESS,
+  USDT_ADDRESS,
+  USDC_ADDRESS,
+  STABLECOIN_DECIMALS,
+} from "@/constants";
 
 // Available input tokens (USDT/USDC)
 const inputTokens = [
@@ -45,20 +58,203 @@ export default function MintTokens() {
   );
   const [inputAmount, setInputAmount] = useState("");
   const [sendToAnotherAddress, setSendToAnotherAddress] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [recipientAddress, setRecipientAddress] = useState("");
-  const [isConnected, setIsConnected] = useState(false);
+
+  // Wagmi hooks
+  const { address, isConnected } = useAccount();
+  const config = useConfig();
+
+  // Contract hooks
+  const { mintTokens, isPending: isMinting } = useTokenMinting();
+
+  // Get token address based on selection
+  const tokenAddress =
+    inputToken.symbol === "USDT" ? USDT_ADDRESS : USDC_ADDRESS;
+
+  // ERC20 hooks for approval
+  const { approve } = useERC20Approval(
+    tokenAddress,
+    TOKEN_MINTING_CONTRACT_ADDRESS
+  );
+
+  // Check current allowance
+  const { data: allowance, refetch: refetchAllowance } = useERC20Allowance(
+    tokenAddress,
+    address,
+    TOKEN_MINTING_CONTRACT_ADDRESS
+  );
+
+  // Note: Balance checking can be added later if needed for validation
+
+  // Check if user has sufficient allowance
+  const hasAllowance =
+    allowance && inputAmount
+      ? allowance >= parseUnits(inputAmount, STABLECOIN_DECIMALS)
+      : false;
+
+  // Calculate fee (0% = 0 basis points)
+  const feeAmount = "0";
+  const netAmount = inputAmount || "0";
 
   // Handler for protocol change
   const handleProtocolChange = (protocol: (typeof insuranceListings)[0]) => {
     setSelectedProtocol(protocol);
+    // Keep approval state since it's token-specific, not protocol-specific
   };
 
-  const handleConnect = () => {
-    setIsConnected(true);
-  };
+  // Reset messages when token changes (not needed with toast)
+  useEffect(() => {
+    // Clear input when token changes
+  }, [inputToken.symbol]);
 
   const handleInputAmountChange = (value: string) => {
     setInputAmount(value);
+  };
+
+  // Handle minting with automatic approval
+  const handleMintWithApproval = async () => {
+    if (!inputAmount || !address || !selectedProtocol) return;
+
+    setIsProcessing(true);
+
+    try {
+      // Check if approval is needed
+      const needsApproval = !hasAllowance;
+
+      if (needsApproval) {
+        console.log("Requesting approval for amount:", inputAmount);
+
+        try {
+          // Trigger approval transaction and get hash directly
+          const approvalTxHash = await approve(inputAmount);
+          console.log("Approval transaction submitted:", approvalTxHash);
+
+          console.log("Waiting for approval confirmation...");
+          // Wait for approval transaction to be confirmed
+          await waitForTransactionReceipt(config, { hash: approvalTxHash });
+          await refetchAllowance();
+          console.log("Approval confirmed on blockchain");
+        } catch (approvalError) {
+          console.error("Approval failed:", approvalError);
+          throw new Error(
+            `Approval failed: ${
+              approvalError instanceof Error
+                ? approvalError.message
+                : String(approvalError)
+            }`
+          );
+        }
+      }
+
+      // Proceed with minting
+      console.log("Requesting mint transaction...");
+      console.log(
+        "Protocol:",
+        selectedProtocol.title,
+        "Token:",
+        inputToken.symbol,
+        "Amount:",
+        inputAmount
+      );
+
+      try {
+        // Trigger mint transaction and get hash directly
+        const mintTransactionHash = await mintTokens(
+          selectedProtocol.title,
+          inputToken.symbol,
+          inputAmount
+        );
+        console.log("Mint transaction submitted:", mintTransactionHash);
+
+        console.log("Waiting for mint transaction confirmation...");
+        // Wait for mint transaction to be confirmed
+        await waitForTransactionReceipt(config, { hash: mintTransactionHash });
+        console.log("Mint transaction confirmed on blockchain");
+      } catch (mintError) {
+        console.error("Mint transaction failed:", mintError);
+        throw new Error(
+          `Mint transaction failed: ${
+            mintError instanceof Error ? mintError.message : String(mintError)
+          }`
+        );
+      }
+
+      // Show success only after both transactions are ACTUALLY confirmed
+      console.log("Both transactions confirmed! Showing success toast...");
+      toast.success(
+        `Successfully minted ${netAmount} i${selectedProtocol.title} and p${selectedProtocol.title} tokens!`,
+        {
+          duration: 4000,
+          icon: "🎉",
+        }
+      );
+      setInputAmount("");
+
+      // Refetch allowance in background, don't let it fail the whole process
+      refetchAllowance().catch((refetchError) => {
+        console.error(
+          "Error refetching allowance (non-critical):",
+          refetchError
+        );
+      });
+
+      console.log("Minting process completed successfully!");
+    } catch (err: unknown) {
+      console.error("Minting process failed:", err);
+
+      // Provide specific error messages
+      let errorMessage = "Minting failed. ";
+      const errorString = err instanceof Error ? err.message : String(err);
+
+      // Check for specific error patterns
+      if (
+        errorString.includes("user rejected") ||
+        errorString.includes("User rejected")
+      ) {
+        errorMessage += "Transaction was rejected by user.";
+      } else if (errorString.includes("insufficient funds")) {
+        errorMessage += "Insufficient ETH for gas fees.";
+      } else if (errorString.includes("allowance")) {
+        errorMessage += "Token approval failed. Please try again.";
+      } else if (errorString.includes("balance")) {
+        errorMessage += `Insufficient ${inputToken.symbol} balance.`;
+      } else if (
+        errorString.includes("Internal JSON-RPC error") ||
+        errorString.includes("-32603")
+      ) {
+        errorMessage +=
+          "Network error occurred. Please check your connection and try again.";
+      } else if (err && typeof err === "object") {
+        // Handle wagmi/viem error objects
+        const errorObj = err as {
+          code?: number | string;
+          reason?: string;
+          message?: string;
+        };
+        if (errorObj.code) {
+          errorMessage += `Error code: ${errorObj.code}`;
+        } else if (errorObj.reason) {
+          errorMessage += `Reason: ${errorObj.reason}`;
+        } else if (errorObj.message) {
+          errorMessage += `${errorObj.message}`;
+        } else {
+          errorMessage += `${errorString}`;
+        }
+      } else if (errorString) {
+        errorMessage += `${errorString}`;
+      } else {
+        errorMessage +=
+          "Please check your balance and network connection, then try again.";
+      }
+
+      toast.error(errorMessage, {
+        duration: 4000,
+        icon: "❌",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -210,7 +406,7 @@ export default function MintTokens() {
                           color="text.primary"
                           sx={{ fontWeight: "bold" }}
                         >
-                          {inputAmount || "0"}
+                          {netAmount || "0"}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -278,7 +474,7 @@ export default function MintTokens() {
                           color="text.primary"
                           sx={{ fontWeight: "bold" }}
                         >
-                          {inputAmount || "0"}
+                          {netAmount || "0"}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -324,12 +520,25 @@ export default function MintTokens() {
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
                         <Typography variant="body2" color="text.secondary">
-                          Total fee
+                          Protocol fee (0%)
                         </Typography>
                         <Info sx={{ fontSize: 16, color: "text.secondary" }} />
                       </Box>
                       <Typography variant="body2" color="text.primary">
-                        $0
+                        {feeAmount} {inputToken.symbol}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={mintStyles.feeInfoStyles}>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          You&apos;ll receive
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" color="text.primary">
+                        {netAmount} tokens each
                       </Typography>
                     </Box>
 
@@ -347,21 +556,40 @@ export default function MintTokens() {
                     </Box>
                   </Stack>
 
-                  {/* Connect/Mint Button */}
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    onClick={isConnected ? undefined : handleConnect}
-                    disabled={
-                      isConnected &&
-                      (!inputAmount || parseFloat(inputAmount) <= 0)
-                    }
-                    sx={mintStyles.connectButtonStyles}
-                  >
-                    {!isConnected
-                      ? "Connect wallet"
-                      : "Mint Insurance & Principal Tokens"}
-                  </Button>
+                  {/* Action Button */}
+                  {!isConnected ? (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      sx={mintStyles.connectButtonStyles}
+                    >
+                      Connect wallet
+                    </Button>
+                  ) : (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      onClick={handleMintWithApproval}
+                      disabled={
+                        !inputAmount ||
+                        parseFloat(inputAmount) <= 0 ||
+                        isMinting ||
+                        isProcessing
+                      }
+                      sx={mintStyles.connectButtonStyles}
+                    >
+                      {isMinting || isProcessing ? (
+                        <>
+                          <CircularProgress size={20} sx={{ mr: 1 }} />
+                          {!hasAllowance
+                            ? "Approving & Minting..."
+                            : "Processing..."}
+                        </>
+                      ) : (
+                        "Mint Insurance & Principal Tokens"
+                      )}
+                    </Button>
+                  )}
 
                   {/* Additional Info */}
                   {isConnected && (

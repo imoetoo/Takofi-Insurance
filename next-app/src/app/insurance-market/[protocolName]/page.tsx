@@ -57,7 +57,7 @@ interface InsuranceData {
   isNew: boolean;
 }
 
-const getInsuranceData = (slug: string): InsuranceData | undefined => {
+const getInsuranceData = (protocolName: string): InsuranceData | undefined => {
   const insuranceMap: { [key: string]: InsuranceData } = {
     sushiswap: {
       title: "SushiSwap",
@@ -103,7 +103,7 @@ const getInsuranceData = (slug: string): InsuranceData | undefined => {
     },
   };
 
-  return insuranceMap[slug];
+  return insuranceMap[protocolName];
 };
 
 const getProtocolIcon = (protocol: string) => {
@@ -135,13 +135,13 @@ const getProtocolColor = (protocol: string) => {
 export default function InsuranceDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const slug = params?.slug as string;
+  const protocolName = params?.protocolName as string;
 
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
   const [amount, setAmount] = useState("");
   const [price, setPrice] = useState("");
 
-  const insuranceData = getInsuranceData(slug);
+  const insuranceData = getInsuranceData(protocolName);
 
   if (!insuranceData) {
     return (

@@ -21,13 +21,17 @@ export default function HomeContent() {
   const { isConnected } = useAccount();
 
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className={homeContentStyles.classNames.mainContainer}>
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_25%,rgba(59,130,246,0.2),transparent_50%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_75%,rgba(139,92,246,0.2),transparent_50%)]" />
+      <section className={homeContentStyles.classNames.heroSection}>
+        {/* Background Gradient color*/}
+        <div className={homeContentStyles.classNames.heroBackgroundPattern}>
+          <div
+            className={homeContentStyles.classNames.heroBackgroundGradient1}
+          />
+          <div
+            className={homeContentStyles.classNames.heroBackgroundGradient2}
+          />
         </div>
 
         <Container maxWidth="lg" sx={homeContentStyles.heroContainerStyles}>
@@ -65,7 +69,7 @@ export default function HomeContent() {
           )}
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
+          <div className={homeContentStyles.classNames.ctaButtonContainer}>
             {isConnected ? (
               <Link href="/mint-tokens">
                 <Button
@@ -77,7 +81,9 @@ export default function HomeContent() {
                 </Button>
               </Link>
             ) : (
-              <div className="flex justify-center">
+              <div
+                className={homeContentStyles.classNames.connectButtonContainer}
+              >
                 <ConnectButton.Custom>
                   {({ openConnectModal }) => (
                     <Button
@@ -104,8 +110,8 @@ export default function HomeContent() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
-            <div className="text-center py-4">
+          <div className={homeContentStyles.classNames.statsGrid}>
+            <div className={homeContentStyles.classNames.statsItem}>
               <Typography
                 variant="h3"
                 sx={homeContentStyles.statsValueStyles.blue}
@@ -116,7 +122,7 @@ export default function HomeContent() {
                 Total Value Locked
               </Typography>
             </div>
-            <div className="text-center py-4">
+            <div className={homeContentStyles.classNames.statsItem}>
               <Typography
                 variant="h3"
                 sx={homeContentStyles.statsValueStyles.purple}
@@ -127,7 +133,7 @@ export default function HomeContent() {
                 Protocols Protected
               </Typography>
             </div>
-            <div className="text-center py-4">
+            <div className={homeContentStyles.classNames.statsItem}>
               <Typography
                 variant="h3"
                 sx={homeContentStyles.statsValueStyles.green}
@@ -143,9 +149,9 @@ export default function HomeContent() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-gray-900">
+      <section className={homeContentStyles.classNames.featuresSection}>
         <Container maxWidth="lg" sx={homeContentStyles.sectionContainerStyles}>
-          <div className="text-center mb-16">
+          <div className={homeContentStyles.classNames.sectionTextCenter}>
             <Typography
               variant="h2"
               sx={{
@@ -165,7 +171,7 @@ export default function HomeContent() {
           </div>
 
           {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className={homeContentStyles.classNames.featuresGrid}>
             {/* Smart Contract Protection */}
             <Card
               sx={{
@@ -174,7 +180,11 @@ export default function HomeContent() {
               }}
             >
               <CardContent sx={homeContentStyles.cardContentStyles}>
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div
+                  className={
+                    homeContentStyles.classNames.featureIconContainer.blue
+                  }
+                >
                   <Shield sx={{ color: "white" }} fontSize="large" />
                 </div>
                 <Typography
@@ -192,8 +202,8 @@ export default function HomeContent() {
                     ...commonStyles.commonSpacing.mediumMargin,
                   }}
                 >
-                  Safeguard your DeFi investments against smart contract
-                  vulnerabilities and protocol risks.
+                  Safeguard your DeFi investments against protocol
+                  vulnerabilities and risks.
                 </Typography>
                 <Link href="/insurance-market">
                   <Button
@@ -214,7 +224,11 @@ export default function HomeContent() {
               }}
             >
               <CardContent sx={homeContentStyles.cardContentStyles}>
-                <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div
+                  className={
+                    homeContentStyles.classNames.featureIconContainer.green
+                  }
+                >
                   <TrendingUp sx={{ color: "white" }} fontSize="large" />
                 </div>
                 <Typography
@@ -254,7 +268,11 @@ export default function HomeContent() {
               }}
             >
               <CardContent sx={homeContentStyles.cardContentStyles}>
-                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div
+                  className={
+                    homeContentStyles.classNames.featureIconContainer.purple
+                  }
+                >
                   <Lock sx={{ color: "white" }} fontSize="large" />
                 </div>
                 <Typography
@@ -291,9 +309,9 @@ export default function HomeContent() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-20 bg-black">
+      <section className={homeContentStyles.classNames.howItWorksSection}>
         <Container maxWidth="lg" sx={homeContentStyles.sectionContainerStyles}>
-          <div className="text-center mb-16">
+          <div className={homeContentStyles.classNames.sectionTextCenter}>
             <Typography
               variant="h2"
               sx={{
@@ -311,9 +329,13 @@ export default function HomeContent() {
             </Typography>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white">
+          <div className={homeContentStyles.classNames.howItWorksGrid}>
+            <div className={homeContentStyles.classNames.howItWorksItem}>
+              <div
+                className={
+                  homeContentStyles.classNames.howItWorksStepIcon.step1
+                }
+              >
                 1
               </div>
               <Typography
@@ -330,8 +352,12 @@ export default function HomeContent() {
               </Typography>
             </div>
 
-            <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white">
+            <div className={homeContentStyles.classNames.howItWorksItem}>
+              <div
+                className={
+                  homeContentStyles.classNames.howItWorksStepIcon.step2
+                }
+              >
                 2
               </div>
               <Typography
@@ -348,8 +374,12 @@ export default function HomeContent() {
               </Typography>
             </div>
 
-            <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-r from-pink-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white">
+            <div className={homeContentStyles.classNames.howItWorksItem}>
+              <div
+                className={
+                  homeContentStyles.classNames.howItWorksStepIcon.step3
+                }
+              >
                 3
               </div>
               <Typography
@@ -370,7 +400,7 @@ export default function HomeContent() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-900 via-purple-900 to-pink-900">
+      <section className={homeContentStyles.classNames.ctaSection}>
         <Container
           maxWidth="lg"
           sx={homeContentStyles.ctaSectionContainerStyles}

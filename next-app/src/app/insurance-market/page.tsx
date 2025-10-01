@@ -64,7 +64,7 @@ export default function InsuranceMarket() {
             <Box sx={commonStyles.headerSectionStyles}>
               <Typography
                 variant="h4"
-                component="h1"
+                component="h1" /* for SEO */
                 sx={{
                   fontWeight: "bold",
                   color: "text.primary",
@@ -121,7 +121,7 @@ export default function InsuranceMarket() {
                   {filteredListings.length === 1 ? "Listing" : "Listings"}
                 </Typography>
                 <Typography component="span" sx={{ ml: 2 }}>
-                  Annual Fee / Available Capacity
+                  Annual Fee / TVL
                 </Typography>
               </Box>
             </Box>

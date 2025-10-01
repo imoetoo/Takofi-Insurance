@@ -65,12 +65,13 @@ export default function InsuranceListingCard({
   const router = useRouter();
 
   const handleClick = () => {
-    // Convert title to URL-friendly slug
-    const slug = title
+    // Convert title to URL-friendly protocol name
+    // makes all lower case, replaces all whitespaces with hyphens, removes special characters
+    const protocolName = title
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9-]/g, "");
-    router.push(`/insurance-market/${slug}`);
+    router.push(`/insurance-market/${protocolName}`);
   };
 
   return (
