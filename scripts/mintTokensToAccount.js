@@ -1,11 +1,20 @@
 const hre = require("hardhat");
+require("dotenv").config({
+  path: "/Users/gc/Desktop/Projects/takofi/Takofi-Insurance/next-app/.env.local",
+});
 
 async function main() {
   console.log("Minting tokens to existing deployed contracts...");
 
-  // Use the addresses from ignition deployment
-  const usdtAddress = "0xD8a5a9b31c3C0232E196d518E89Fd8bF83AcAd43";
-  const usdcAddress = "0x2E2Ed0Cfd3AD2f1d34481277b3204d807Ca2F8c2";
+  // Use the addresses from next-app/.env.local
+  const usdtAddress = process.env.NEXT_PUBLIC_USDT_ADDRESS;
+  const usdcAddress = process.env.NEXT_PUBLIC_USDC_ADDRESS;
+
+  if (!usdtAddress || !usdcAddress) {
+    throw new Error(
+      "NEXT_PUBLIC_USDT_ADDRESS and NEXT_PUBLIC_USDC_ADDRESS must be set in next-app/.env.local"
+    );
+  }
 
   // Get contract instances
   const MockStablecoin = await hre.ethers.getContractFactory("MockStablecoin");
@@ -13,7 +22,7 @@ async function main() {
   const mockUSDC = MockStablecoin.attach(usdcAddress);
 
   // Test account address
-  const testAccount = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+  const testAccount = "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc";
   const amount = hre.ethers.parseUnits("100000", 6); // 100k tokens
 
   console.log(`Minting 100,000 tokens to ${testAccount}...`);

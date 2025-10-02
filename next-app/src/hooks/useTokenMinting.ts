@@ -27,8 +27,9 @@ export function useTokenMinting() {
     const protocolId = keccak256(toBytes(protocolName));
 
     // Determine stablecoin address
-    const stablecoinAddress =
-      stablecoinSymbol === "USDT" ? USDT_ADDRESS : USDC_ADDRESS;
+    const stablecoinAddress = (
+      stablecoinSymbol === "USDT" ? USDT_ADDRESS : USDC_ADDRESS
+    ) as `0x${string}`;
 
     // Convert amount to proper decimals (USDT/USDC typically use 6 decimals)
     const amountInWei = parseUnits(amount, STABLECOIN_DECIMALS);
@@ -54,8 +55,9 @@ export function useTokenMinting() {
   ) => {
     try {
       const protocolId = keccak256(toBytes(protocolName));
-      const preferredStablecoin =
-        preferredStablecoinSymbol === "USDT" ? USDT_ADDRESS : USDC_ADDRESS;
+      const preferredStablecoin = (
+        preferredStablecoinSymbol === "USDT" ? USDT_ADDRESS : USDC_ADDRESS
+      ) as `0x${string}`;
 
       const insuranceAmountWei = parseUnits(insuranceAmount, 18); // Tokens are ERC20 with 18 decimals
       const principalAmountWei = parseUnits(principalAmount, 18);

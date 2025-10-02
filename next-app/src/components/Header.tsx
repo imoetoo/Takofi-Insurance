@@ -45,6 +45,12 @@ export default function Header() {
           >
             <span>Mint Tokens</span>
           </Link>
+          <Link
+            href="/portfolio"
+            className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors py-2 px-1 text-base font-medium"
+          >
+            <span>Portfolio</span>
+          </Link>
         </div>
       </div>
 

@@ -1,22 +1,30 @@
 const { ethers } = require("hardhat");
+require("dotenv").config({
+  path: "/Users/gc/Desktop/Projects/takofi/Takofi-Insurance/next-app/.env.local",
+});
 
 async function main() {
   try {
     console.log("🔍 Checking your actual token balances after minting...");
 
     // Get signers
-    const [signer] = await ethers.getSigners();
-    const userAddress = signer.address;
+    const testAccount = "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc";
 
-    // Contract address (deployed via Ignition)
+    // Get contract address from environment variables
     const protocolInsuranceAddress =
-      "0xDC11f7E700A4c898AE5CAddB1082cFfa76512aDD";
+      process.env.NEXT_PUBLIC_TOKEN_MINTING_ADDRESS;
+
+    if (!protocolInsuranceAddress) {
+      throw new Error(
+        "NEXT_PUBLIC_TOKEN_MINTING_ADDRESS must be set in next-app/.env.local"
+      );
+    }
     const protocolInsurance = await ethers.getContractAt(
       "ProtocolInsurance",
       protocolInsuranceAddress
     );
 
-    console.log(`👤 User address: ${userAddress}`);
+    console.log(`👤 Test account address: ${testAccount}`);
     console.log(`📍 Contract address: ${protocolInsuranceAddress}`);
 
     // Check all protocols (matching smart contract constructor)
@@ -45,8 +53,8 @@ async function main() {
           protocolInfo.principalToken
         );
 
-        const insuranceBalance = await insuranceToken.balanceOf(userAddress);
-        const principalBalance = await principalToken.balanceOf(userAddress);
+        const insuranceBalance = await insuranceToken.balanceOf(testAccount);
+        const principalBalance = await principalToken.balanceOf(testAccount);
 
         const insuranceSymbol = await insuranceToken.symbol();
         const principalSymbol = await principalToken.symbol();
@@ -59,11 +67,6 @@ async function main() {
           `${principalSymbol}: ${ethers.formatUnits(principalBalance, 18)}`
         );
 
-        // Show raw values for debugging if needed
-        if (insuranceBalance > 0) {
-          console.log(`  (Raw: ${insuranceBalance.toString()})`);
-        }
-
         console.log(``);
       } catch (error) {
         console.log(`❌ Error checking ${protocolName}: ${error.message}`);
@@ -73,14 +76,14 @@ async function main() {
     // Check remaining stablecoin balances
     console.log(`💵 Remaining Stablecoin Balances:`);
 
-    const usdtAddress = "0xD8a5a9b31c3C0232E196d518E89Fd8bF83AcAd43";
-    const usdcAddress = "0x2E2Ed0Cfd3AD2f1d34481277b3204d807Ca2F8c2";
+    const usdtAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+    const usdcAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
     const usdt = await ethers.getContractAt("MockStablecoin", usdtAddress);
     const usdc = await ethers.getContractAt("MockStablecoin", usdcAddress);
 
-    const usdtBalance = await usdt.balanceOf(userAddress);
-    const usdcBalance = await usdc.balanceOf(userAddress);
+    const usdtBalance = await usdt.balanceOf(testAccount);
+    const usdcBalance = await usdc.balanceOf(testAccount);
 
     console.log(`USDT: ${ethers.formatUnits(usdtBalance, 6)}`);
     console.log(`USDC: ${ethers.formatUnits(usdcBalance, 6)}`);

@@ -1,10 +1,17 @@
-// Contract addresses from deployment
-export const TOKEN_MINTING_CONTRACT_ADDRESS =
-  "0xDC11f7E700A4c898AE5CAddB1082cFfa76512aDD";
+// Contract addresses from deployment (loaded from environment variables)
+export const TOKEN_MINTING_CONTRACT_ADDRESS = process.env
+  .NEXT_PUBLIC_TOKEN_MINTING_ADDRESS! as `0x${string}`;
 
 // Mock stablecoin addresses from deployment (for localhost testing)
-export const USDT_ADDRESS = "0xD8a5a9b31c3C0232E196d518E89Fd8bF83AcAd43"; // Mock USDT deployed address
-export const USDC_ADDRESS = "0x2E2Ed0Cfd3AD2f1d34481277b3204d807Ca2F8c2"; // Mock USDC deployed address
+export const USDT_ADDRESS = process.env
+  .NEXT_PUBLIC_USDT_ADDRESS! as `0x${string}`; // Mock USDT deployed address
+export const USDC_ADDRESS = process.env
+  .NEXT_PUBLIC_USDC_ADDRESS! as `0x${string}`; // Mock USDC deployed address
+
+// Ensure addresses are available
+if (!TOKEN_MINTING_CONTRACT_ADDRESS || !USDT_ADDRESS || !USDC_ADDRESS) {
+  throw new Error("Contract addresses not found in environment variables");
+}
 
 // TokenMinting contract ABI - essential functions only
 export const TOKEN_MINTING_ABI = [

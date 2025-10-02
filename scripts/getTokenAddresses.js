@@ -1,12 +1,21 @@
 const { ethers } = require("hardhat");
+require("dotenv").config({
+  path: "/Users/gc/Desktop/Projects/takofi/Takofi-Insurance/next-app/.env.local",
+});
 
 async function main() {
   try {
     console.log("🔍 Getting token addresses from deployed contracts...\n");
 
-    // Contract address (deployed via Ignition)
+    // Get contract address from environment variables
     const protocolInsuranceAddress =
-      "0xDC11f7E700A4c898AE5CAddB1082cFfa76512aDD";
+      process.env.NEXT_PUBLIC_TOKEN_MINTING_ADDRESS;
+
+    if (!protocolInsuranceAddress) {
+      throw new Error(
+        "NEXT_PUBLIC_TOKEN_MINTING_ADDRESS must be set in next-app/.env.local"
+      );
+    }
     const protocolInsurance = await ethers.getContractAt(
       "ProtocolInsurance",
       protocolInsuranceAddress
