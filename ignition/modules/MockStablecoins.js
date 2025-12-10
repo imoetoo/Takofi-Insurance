@@ -1,17 +1,21 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 export default buildModule("MockStablecoinsModule", (m) => {
-  // Deploy Mock USDT (6 decimals like real USDT)
-  const mockUSDT = m.contract(
-    "MockStablecoin",
-    ["Mock Tether USD", "USDT", 6],
-    { id: "MockUSDT" }
-  );
+  const specs = [
+    {name: "Mock Tether USD", symbol: "USDT", decimals: 6},
+    {name: "Mock USD Coin", symbol: "USDC", decimals: 6},
+  ];
 
-  // Deploy Mock USDC (6 decimals like real USDC)
-  const mockUSDC = m.contract("MockStablecoin", ["Mock USD Coin", "USDC", 6], {
-    id: "MockUSDC",
-  });
+  const deployed = {};
 
-  return { mockUSDT, mockUSDC };
+  for (const spec of specs) {
+    const id = `Mock${spec.symbol}`;
+    deployed[spec.symbol] = m.contract(
+      "MockStablecoin",
+      [spec.name, spec.symbol, spec.decimals],
+      { id }
+    );
+  }
+
+  return deployed; //{USDT, USDC}
 });

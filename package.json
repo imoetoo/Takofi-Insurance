@@ -2,9 +2,16 @@
   "name": "solidity-learn",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev"           : "vite",
+    "build"         : "vite build",
+    "preview"       : "vite preview",
+    "compile"       : "hardhat compile",
+    "clean"         : "hardhat clean",
+    "node"          : "hardhat node --hostname 127.0.0.1 --port 8545",
+    "deploy:all"    : "hardhat run scripts/deployAll.js --network localhost",
+    "mint"          : "hardhat run --network localhost scripts/mintTokensToAccount.js",
+    "addresses"     : "hardhat run --network localhost scripts/getTokenAddresses.js",
+    "bal"           : "hardhat run --network localhost scripts/analyzeBalances.js"    
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",

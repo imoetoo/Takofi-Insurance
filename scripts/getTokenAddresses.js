@@ -1,12 +1,14 @@
 const { ethers } = require("hardhat");
+const { loadDeploymentAddresses } = require("./utils/loadDeployments");
 
 async function main() {
   try {
     console.log("🔍 Getting token addresses from deployed contracts...\n");
 
-    // Contract address (deployed via Ignition)
-    const protocolInsuranceAddress =
-      "0xDC11f7E700A4c898AE5CAddB1082cFfa76512aDD";
+    // Load deployment addresses
+    const addresses = loadDeploymentAddresses();
+    const protocolInsuranceAddress = addresses.protocolInsurance;
+
     const protocolInsurance = await ethers.getContractAt(
       "ProtocolInsurance",
       protocolInsuranceAddress

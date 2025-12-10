@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useMemo } from "react";
 import { WagmiProvider } from "wagmi";
 import {
   darkTheme as rainbowDarkTheme,
@@ -15,7 +15,8 @@ import darkTheme from "@/theme/darkTheme";
 import "@rainbow-me/rainbowkit/styles.css";
 
 export function Providers(props: { children: ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  // Use useMemo to prevent re-creating QueryClient on every render
+  const queryClient = useMemo(() => new QueryClient(), []);
 
   return (
     <ThemeProvider theme={darkTheme}>

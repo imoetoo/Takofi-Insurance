@@ -1,4 +1,5 @@
 const { ethers } = require("hardhat");
+const { loadDeploymentAddresses } = require("./utils/loadDeployments");
 
 async function main() {
   try {
@@ -8,9 +9,16 @@ async function main() {
     const [signer] = await ethers.getSigners();
     const userAddress = signer.address;
 
-    // Contract address (deployed via Ignition)
-    const protocolInsuranceAddress =
-      "0xDC11f7E700A4c898AE5CAddB1082cFfa76512aDD";
+    // Load deployment addresses
+    const addresses = loadDeploymentAddresses();
+    const protocolInsuranceAddress = addresses.protocolInsurance;
+    const usdtAddress = addresses.mockUSDT;
+    const usdcAddress = addresses.mockUSDC;
+
+    if (!protocolInsuranceAddress) {
+      throw new Error("TokenMinting contract address not found in deployment.");
+    }
+
     const protocolInsurance = await ethers.getContractAt(
       "ProtocolInsurance",
       protocolInsuranceAddress
@@ -72,9 +80,6 @@ async function main() {
 
     // Check remaining stablecoin balances
     console.log(`💵 Remaining Stablecoin Balances:`);
-
-    const usdtAddress = "0xD8a5a9b31c3C0232E196d518E89Fd8bF83AcAd43";
-    const usdcAddress = "0x2E2Ed0Cfd3AD2f1d34481277b3204d807Ca2F8c2";
 
     const usdt = await ethers.getContractAt("MockStablecoin", usdtAddress);
     const usdc = await ethers.getContractAt("MockStablecoin", usdcAddress);

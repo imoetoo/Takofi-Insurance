@@ -6,28 +6,7 @@ This directory contains Hardhat Ignition deployment modules for the TakoFi Insur
 
 This directory contains Hardhat Ignition deployment modules for the TakoFi Insurance protocol. These modules handle automated contract deployment with proper dependency management.
 
-## 📋 Available Modules (3 Total)
-
-### 🚀 `FullDeployment.js` ⭐ **RECOMMENDED**
-
-**Purpose:** Complete system deployment in one command
-
-**What it deploys:**
-
-- Mock USDT and USDC contracts (6 decimals)
-- TokenMinting contract with automatic protocol setup
-- All 6 protocols: SushiSwap, Curve Finance, Aave, Uniswap V3, Compound, MakerDAO
-- 0% minting fees for all protocols
-
-**Usage:**
-
-```bash
-npx hardhat ignition deploy ignition/modules/FullDeployment.js --network localhost
-```
-
-**Why use this:** Single command deploys everything you need for development.
-
----
+## 📋 Available Modules (2 Total)
 
 ### 💰 `MockStablecoins.js`
 
@@ -200,8 +179,7 @@ npx hardhat compile
 
 ## 💡 **Best Practices**
 
-1. **Always use `FullDeployment.js`** for new development environments
-2. **Keep deployments folder** - contains important contract addresses
-3. **Update constants.ts** if you redeploy and get new addresses
-4. **Test deployment** with scripts after deployment
-5. **Use same network** for deployment and testing (localhost)
+1. **Keep deployments folder** - contains important contract addresses
+2. **Update constants.ts** if you redeploy and get new addresses
+3. **Test deployment** with scripts after deployment
+4. **Use same network** for deployment and testing (localhost)

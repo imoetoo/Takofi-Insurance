@@ -1,11 +1,14 @@
 const hre = require("hardhat");
+const { loadDeploymentAddresses } = require("./utils/loadDeployments");
 
 async function main() {
-  console.log("Minting tokens to existing deployed contracts...");
+  // Load deployment addresses
+  const addresses = loadDeploymentAddresses();
+  const usdtAddress = addresses.mockUSDT;
+  const usdcAddress = addresses.mockUSDC;
 
-  // Use the addresses from ignition deployment
-  const usdtAddress = "0xD8a5a9b31c3C0232E196d518E89Fd8bF83AcAd43";
-  const usdcAddress = "0x2E2Ed0Cfd3AD2f1d34481277b3204d807Ca2F8c2";
+  console.log(`   ✅ Mock USDT deployed at: ${usdtAddress}`);
+  console.log(`   ✅ Mock USDC deployed at: ${usdcAddress}\n`);
 
   // Get contract instances
   const MockStablecoin = await hre.ethers.getContractFactory("MockStablecoin");

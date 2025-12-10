@@ -1,16 +1,13 @@
-const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import MockStablecoinsModule from "./MockStablecoins.js";
 
-module.exports = buildModule("TokenMintingModule", (m) => {
-  // Use deployed MockStablecoin addresses for localhost testing
-  const usdtAddress = "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0"; // MockUSDT
-  const usdcAddress = "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"; // MockUSDC
+export default buildModule("TokenMintingModule", (m) => {
+  // Get the deployed MockStablecoin contracts from the MockStablecoins module
+  const { USDT, USDC } = m.useModule(MockStablecoinsModule);
 
   // Deploy the ProtocolInsurance contract
   // Constructor will automatically set up SushiSwap, Uniswap, Curve, Aave, Compound, MakerDAO protocols
-  const protocolInsurance = m.contract("ProtocolInsurance", [
-    usdtAddress,
-    usdcAddress,
-  ]);
+  const protocolInsurance = m.contract("ProtocolInsurance", [USDT, USDC]);
 
   return { protocolInsurance };
 });

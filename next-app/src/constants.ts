@@ -1,10 +1,15 @@
+import deployments from "./deployments.json";
+
 // Contract addresses from deployment
-export const TOKEN_MINTING_CONTRACT_ADDRESS =
-  "0xDC11f7E700A4c898AE5CAddB1082cFfa76512aDD";
+export const TOKEN_MINTING_CONTRACT_ADDRESS = deployments.contracts.TokenMinting as `0x${string}`;
 
 // Mock stablecoin addresses from deployment (for localhost testing)
-export const USDT_ADDRESS = "0xD8a5a9b31c3C0232E196d518E89Fd8bF83AcAd43"; // Mock USDT deployed address
-export const USDC_ADDRESS = "0x2E2Ed0Cfd3AD2f1d34481277b3204d807Ca2F8c2"; // Mock USDC deployed address
+export const USDT_ADDRESS = deployments.contracts.MockUSDT as `0x${string}`;
+export const USDC_ADDRESS = deployments.contracts.MockUSDC as `0x${string}`;
+
+// Token decimals
+export const STABLECOIN_DECIMALS = 6; // USDT and USDC typically use 6 decimals
+export const PRICE_PRECISION = 1e18; // Price scaling factor: price = actualPrice × 1e18 (supports 18 decimal places) from Dex.sol
 
 // TokenMinting contract ABI - essential functions only
 export const TOKEN_MINTING_ABI = [
@@ -116,5 +121,3 @@ export const ERC20_ABI = [
   },
 ] as const;
 
-// Token decimals
-export const STABLECOIN_DECIMALS = 6; // USDT and USDC typically use 6 decimals
