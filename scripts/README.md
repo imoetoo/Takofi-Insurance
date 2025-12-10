@@ -36,7 +36,7 @@ npx hardhat run scripts/mintTokensToAccount.js --network localhost
 **Description:**
 
 - Detailed check of all protocol token balances (insurance and principal tokens)
-- Shows balances for all 6 protocols: SushiSwap, Curve Finance, Aave, Uniswap V3, Compound, MakerDAO
+- Shows balances for all 6 protocols: SushiSwap, Curve Finance, Aave, Uniswap V3, Compound, PancakeSwap
 - Contract status verification and complete system health overview
 - Use after minting insurance tokens through the frontend
 
@@ -132,7 +132,7 @@ The system supports 6 DeFi protocols:
 - **Aave** (Lending Protocol)
 - **Uniswap V3** (Automated Market Maker)
 - **Compound** (Money Market)
-- **MakerDAO** (CDP Platform)
+- **PancakeSwap** (Decentralized Exchange)
 
 All protocols are configured with **0% minting fees** for testing.
 

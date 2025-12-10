@@ -34,7 +34,7 @@ async function main() {
       "Aave",
       "Uniswap V3",
       "Compound",
-      "MakerDAO",
+      "PancakeSwap",
     ];
 
     console.log(`\n💰 Your Token Balances:\n`);

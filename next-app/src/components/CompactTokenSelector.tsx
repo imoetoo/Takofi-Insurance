@@ -5,12 +5,12 @@ import {
   Card,
   CardContent,
   Typography,
-  Avatar,
   Select,
   MenuItem,
   FormControl,
   TextField,
 } from "@mui/material";
+import Image from "next/image";
 
 interface Token {
   symbol: string;
@@ -31,6 +31,14 @@ interface CompactTokenSelectorProps {
   helperText?: string;
   disabled?: boolean;
 }
+
+const getTokenLogo = (symbol: string): string => {
+  const logoMap: { [key: string]: string } = {
+    USDT: "/protocols/usdt.png",
+    USDC: "/protocols/usdc.png",
+  };
+  return logoMap[symbol] || "/protocols/usdt.png";
+};
 
 export default function CompactTokenSelector({
   label,
@@ -100,16 +108,28 @@ export default function CompactTokenSelector({
                   value={`${token.symbol}-${token.network}`}
                 >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Avatar
+                    <Box
                       sx={{
-                        bgcolor: token.color,
                         width: 24,
                         height: 24,
-                        fontSize: "0.8rem",
+                        borderRadius: "50%",
+                        overflow: "hidden",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        bgcolor: "background.paper",
+                        border: "1px solid",
+                        borderColor: "divider",
                       }}
                     >
-                      {token.icon}
-                    </Avatar>
+                      <Image
+                        src={getTokenLogo(token.symbol)}
+                        alt={`${token.symbol} logo`}
+                        width={20}
+                        height={20}
+                        style={{ objectFit: "contain" }}
+                      />
+                    </Box>
                     <Box>
                       <Typography variant="body2">{token.symbol}</Typography>
                       <Typography

@@ -5,11 +5,11 @@ import {
   Card,
   CardContent,
   Typography,
-  Avatar,
   Select,
   MenuItem,
   FormControl,
 } from "@mui/material";
+import Image from "next/image";
 
 interface Protocol {
   title: string;
@@ -33,30 +33,18 @@ export default function ProtocolSelector({
   onProtocolChange,
   protocols,
 }: ProtocolSelectorProps) {
-  const getProtocolColor = (title: string) => {
-    const colors: { [key: string]: string } = {
-      SushiSwap: "#ff007a",
-      "Curve Finance": "#40e0d0",
-      Aave: "#b6509e",
-      Compound: "#00d395",
-      Uniswap: "#ff007a",
-      MakerDAO: "#1aab9b",
-      Yearn: "#006ae3",
+  const getProtocolLogo = (title: string): string => {
+    const logoMap: { [key: string]: string } = {
+      SushiSwap: "/protocols/sushiswap.png",
+      "Curve Finance": "/protocols/Curve.png",
+      Aave: "/protocols/aave.png",
+      "Uniswap V3": "/protocols/uniswap.png",
+      Uniswap: "/protocols/uniswap.png",
+      Compound: "/protocols/compound.png",
+      PancakeSwap: "/protocols/pancakeswap.png",
+      Yearn: "/protocols/sushiswap.png",
     };
-    return colors[title] || "#6366f1";
-  };
-
-  const getProtocolIcon = (title: string) => {
-    const icons: { [key: string]: string } = {
-      SushiSwap: "🍣",
-      "Curve Finance": "📈",
-      Aave: "🅰️",
-      Compound: "🏛️",
-      Uniswap: "🦄",
-      MakerDAO: "🏭",
-      Yearn: "💰",
-    };
-    return icons[title] || "🏦";
+    return logoMap[title] || "/protocols/sushiswap.png";
   };
 
   return (
@@ -87,16 +75,28 @@ export default function ProtocolSelector({
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }}>
-            <Avatar
+            <Box
               sx={{
-                bgcolor: getProtocolColor(selectedProtocol.title),
                 width: 40,
                 height: 40,
-                fontSize: "1.2rem",
+                borderRadius: "50%",
+                overflow: "hidden",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                bgcolor: "background.paper",
+                border: "2px solid",
+                borderColor: "divider",
               }}
             >
-              {getProtocolIcon(selectedProtocol.title)}
-            </Avatar>
+              <Image
+                src={getProtocolLogo(selectedProtocol.title)}
+                alt={`${selectedProtocol.title} logo`}
+                width={32}
+                height={32}
+                style={{ objectFit: "contain" }}
+              />
+            </Box>
             <Box>
               <Typography
                 variant="h6"
@@ -135,16 +135,28 @@ export default function ProtocolSelector({
               {protocols.map((protocol) => (
                 <MenuItem key={protocol.title} value={protocol.title}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Avatar
+                    <Box
                       sx={{
-                        bgcolor: getProtocolColor(protocol.title),
                         width: 24,
                         height: 24,
-                        fontSize: "0.8rem",
+                        borderRadius: "50%",
+                        overflow: "hidden",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        bgcolor: "background.paper",
+                        border: "1px solid",
+                        borderColor: "divider",
                       }}
                     >
-                      {getProtocolIcon(protocol.title)}
-                    </Avatar>
+                      <Image
+                        src={getProtocolLogo(protocol.title)}
+                        alt={`${protocol.title} logo`}
+                        width={20}
+                        height={20}
+                        style={{ objectFit: "contain" }}
+                      />
+                    </Box>
                     <Box>
                       <Typography variant="body2">{protocol.title}</Typography>
                       <Typography

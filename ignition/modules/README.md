@@ -123,7 +123,7 @@ npx hardhat ignition deploy ignition/modules/FullDeployment.js --network mainnet
 3. **Aave** (0% fee)
 4. **Uniswap V3** (0% fee)
 5. **Compound** (0% fee)
-6. **MakerDAO** (0% fee)
+6. **PancakeSwap** (0% fee)
 
 ---
 

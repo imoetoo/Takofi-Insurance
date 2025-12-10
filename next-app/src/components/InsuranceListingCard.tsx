@@ -4,16 +4,10 @@ import {
   CardContent,
   Typography,
   Box,
-  Avatar,
   Chip,
 } from "@mui/material";
-import {
-  Star,
-  Security,
-  TrendingUp,
-  AccountBalance,
-} from "@mui/icons-material";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface InsuranceListingCardProps {
   title: string;
@@ -26,19 +20,6 @@ interface InsuranceListingCardProps {
   protocol: "defi" | "lending" | "exchange" | "other";
 }
 
-const getProtocolIcon = (protocol: string) => {
-  switch (protocol) {
-    case "defi":
-      return <TrendingUp />;
-    case "lending":
-      return <AccountBalance />;
-    case "exchange":
-      return <Star />;
-    default:
-      return <Security />;
-  }
-};
-
 const getProtocolColor = (protocol: string) => {
   switch (protocol) {
     case "defi":
@@ -50,6 +31,18 @@ const getProtocolColor = (protocol: string) => {
     default:
       return "#14b8a6"; // Teal default
   }
+};
+
+const getProtocolLogo = (title: string): string => {
+  const logoMap: { [key: string]: string } = {
+    SushiSwap: "/protocols/sushiswap.png",
+    "Curve Finance": "/protocols/Curve.png",
+    Aave: "/protocols/aave.png",
+    "Uniswap V3": "/protocols/uniswap.png",
+    Compound: "/protocols/compound.png",
+    PancakeSwap: "/protocols/pancakeswap.png",
+  };
+  return logoMap[title] || "/protocols/sushiswap.png";
 };
 
 export default function InsuranceListingCard({
@@ -99,15 +92,28 @@ export default function InsuranceListingCard({
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Avatar
+          <Box
             sx={{
-              bgcolor: getProtocolColor(protocol),
               width: 48,
               height: 48,
+              borderRadius: "50%",
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              bgcolor: "background.paper",
+              border: "2px solid",
+              borderColor: "divider",
             }}
           >
-            {getProtocolIcon(protocol)}
-          </Avatar>
+            <Image
+              src={getProtocolLogo(title)}
+              alt={`${title} logo`}
+              width={40}
+              height={40}
+              style={{ objectFit: "contain" }}
+            />
+          </Box>
           <Box>
             <Box
               sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}

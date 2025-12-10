@@ -5,11 +5,11 @@ import {
   Card,
   CardContent,
   Typography,
-  Avatar,
   Select,
   MenuItem,
   FormControl,
 } from "@mui/material";
+import Image from "next/image";
 
 interface Token {
   symbol: string;
@@ -25,6 +25,14 @@ interface TokenSelectorProps {
   onTokenChange: (token: Token) => void;
   availableTokens: Token[];
 }
+
+const getTokenLogo = (symbol: string): string => {
+  const logoMap: { [key: string]: string } = {
+    USDT: "/protocols/usdt.png",
+    USDC: "/protocols/usdc.png",
+  };
+  return logoMap[symbol] || "/protocols/usdt.png";
+};
 
 export default function TokenSelector({
   label,
@@ -60,17 +68,28 @@ export default function TokenSelector({
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }}>
-            <Avatar
+            <Box
               sx={{
-                bgcolor: selectedToken.color,
                 width: 40,
                 height: 40,
-                fontSize: "1.2rem",
-                fontWeight: "bold",
+                borderRadius: "50%",
+                overflow: "hidden",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                bgcolor: "background.paper",
+                border: "2px solid",
+                borderColor: "divider",
               }}
             >
-              {selectedToken.icon}
-            </Avatar>
+              <Image
+                src={getTokenLogo(selectedToken.symbol)}
+                alt={`${selectedToken.symbol} logo`}
+                width={32}
+                height={32}
+                style={{ objectFit: "contain" }}
+              />
+            </Box>
             <Box>
               <Typography
                 variant="h6"
@@ -112,16 +131,28 @@ export default function TokenSelector({
                   value={token.symbol}
                 >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Avatar
+                    <Box
                       sx={{
-                        bgcolor: token.color,
                         width: 24,
                         height: 24,
-                        fontSize: "0.8rem",
+                        borderRadius: "50%",
+                        overflow: "hidden",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        bgcolor: "background.paper",
+                        border: "1px solid",
+                        borderColor: "divider",
                       }}
                     >
-                      {token.icon}
-                    </Avatar>
+                      <Image
+                        src={getTokenLogo(token.symbol)}
+                        alt={`${token.symbol} logo`}
+                        width={20}
+                        height={20}
+                        style={{ objectFit: "contain" }}
+                      />
+                    </Box>
                     <Box>
                       <Typography variant="body2">{token.symbol}</Typography>
                       <Typography

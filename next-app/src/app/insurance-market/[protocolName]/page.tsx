@@ -15,19 +15,15 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Avatar,
   Chip,
   Divider,
 } from "@mui/material";
 import {
   ArrowBack,
-  TrendingUp,
-  AccountBalance,
-  Star,
-  Security,
 } from "@mui/icons-material";
 import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import Image from "next/image";
 import * as commonStyles from "@/styles/commonStyles";
 
 // Mock order book data - in real app, this would come from API
@@ -94,10 +90,10 @@ const getInsuranceData = (protocolName: string): InsuranceData | undefined => {
       currentRate: "23.89%",
       isNew: false,
     },
-    makerdao: {
-      title: "MakerDAO",
-      provider: "MakerDAO Insurance Token",
-      protocol: "defi",
+    pancakeswap: {
+      title: "PancakeSwap",
+      provider: "PancakeSwap Insurance Token",
+      protocol: "exchange",
       currentRate: "22.34%",
       isNew: false,
     },
@@ -106,17 +102,16 @@ const getInsuranceData = (protocolName: string): InsuranceData | undefined => {
   return insuranceMap[protocolName];
 };
 
-const getProtocolIcon = (protocol: string) => {
-  switch (protocol) {
-    case "defi":
-      return <TrendingUp />;
-    case "lending":
-      return <AccountBalance />;
-    case "exchange":
-      return <Star />;
-    default:
-      return <Security />;
-  }
+const getProtocolLogo = (title: string): string => {
+  const logoMap: { [key: string]: string } = {
+    SushiSwap: "/protocols/sushiswap.png",
+    "Curve Finance": "/protocols/Curve.png",
+    Aave: "/protocols/aave.png",
+    "Uniswap V3": "/protocols/uniswap.png",
+    Compound: "/protocols/compound.png",
+    PancakeSwap: "/protocols/pancakeswap.png",
+  };
+  return logoMap[title] || "/protocols/sushiswap.png";
 };
 
 const getProtocolColor = (protocol: string) => {
@@ -179,15 +174,28 @@ export default function InsuranceDetailPage() {
         <Card sx={{ ...commonStyles.cardStyles, mb: 3 }}>
           <CardContent sx={{ p: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
-              <Avatar
+              <Box
                 sx={{
-                  bgcolor: getProtocolColor(insuranceData.protocol),
                   width: 64,
                   height: 64,
+                  borderRadius: "50%",
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  bgcolor: "background.paper",
+                  border: "2px solid",
+                  borderColor: "divider",
                 }}
               >
-                {getProtocolIcon(insuranceData.protocol)}
-              </Avatar>
+                <Image
+                  src={getProtocolLogo(insuranceData.title)}
+                  alt={`${insuranceData.title} logo`}
+                  width={48}
+                  height={48}
+                  style={{ objectFit: "contain" }}
+                />
+              </Box>
               <Box sx={{ flex: 1 }}>
                 <Box
                   sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}

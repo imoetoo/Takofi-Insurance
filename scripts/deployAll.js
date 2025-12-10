@@ -167,7 +167,7 @@ async function main() {
       "Aave",
       "Uniswap V3",
       "Compound",
-      "MakerDAO",
+      "PancakeSwap",
     ];
 
     const protocolTokens = {};

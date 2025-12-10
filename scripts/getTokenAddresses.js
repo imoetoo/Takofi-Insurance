@@ -23,7 +23,7 @@ async function main() {
       "Aave",
       "Uniswap V3",
       "Compound",
-      "MakerDAO",
+      "PancakeSwap",
     ];
 
     console.log(`📋 Token Contract Addresses:\n`);

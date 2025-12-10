@@ -6,7 +6,7 @@ export default buildModule("TokenMintingModule", (m) => {
   const { USDT, USDC } = m.useModule(MockStablecoinsModule);
 
   // Deploy the ProtocolInsurance contract
-  // Constructor will automatically set up SushiSwap, Uniswap, Curve, Aave, Compound, MakerDAO protocols
+  // Constructor will automatically set up SushiSwap, Uniswap, Curve, Aave, Compound, PancakeSwap protocols
   const protocolInsurance = m.contract("ProtocolInsurance", [USDT, USDC]);
 
   return { protocolInsurance };

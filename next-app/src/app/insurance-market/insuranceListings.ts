@@ -51,13 +51,13 @@ export const insuranceListings = [
     protocol: "lending" as const,
   },
   {
-    title: "MakerDAO",
-    provider: "MakerDAO Insurance Token",
+    title: "PancakeSwap",
+    provider: "PancakeSwap Insurance Token",
     minRate: "0.75",
     maxRate: "0.95",
     capacity: "12.3k",
     capacityUSD: "58.9",
     isNew: false,
-    protocol: "defi" as const,
+    protocol: "exchange" as const,
   },
 ];
