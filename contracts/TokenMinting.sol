@@ -76,7 +76,7 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
         _addProtocol("Aave", 0);
         _addProtocol("Uniswap V3", 0);
         _addProtocol("Compound", 0);
-        _addProtocol("MakerDAO", 0);
+        _addProtocol("PancakeSwap", 0);
     }
     
     // Internal function to add protocols (used in constructor and externally)

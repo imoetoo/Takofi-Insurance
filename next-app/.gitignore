@@ -42,3 +42,6 @@ next-env.d.ts
 
 # deployment file
 src/deployments.json
+
+# mac os ds store
+**/.DS_Store

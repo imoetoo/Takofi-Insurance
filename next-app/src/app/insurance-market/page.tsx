@@ -53,8 +53,8 @@ export default function InsuranceMarket() {
       <Container maxWidth="lg">
         {/* Tab Navigation */}
         <RoundedTabs value={tabValue} onChange={handleTabChange} centered>
-          <Tab label="Trade Tokenized Insurance" />
-          <Tab label="My Tokenized Insurance" />
+          <Tab label="Trade Insurance Token" />
+          <Tab label="My Insurance Token" />
         </RoundedTabs>
 
         {/* Main Content Card */}

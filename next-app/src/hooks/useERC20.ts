@@ -83,3 +83,62 @@ export function useERC20Balance(
     },
   });
 }
+
+// Combined hook for balance, allowance, and approval
+export function useERC20(
+  tokenAddress: `0x${string}` | undefined,
+  ownerAddress: `0x${string}` | undefined,
+  spenderAddress: `0x${string}` | undefined
+) {
+  const { writeContractAsync } = useWriteContract();
+
+  // Get balance
+  const { data: balance = BigInt(0), refetch: refetchBalance } =
+    useReadContract({
+      address: tokenAddress,
+      abi: ERC20_ABI,
+      functionName: "balanceOf",
+      args: ownerAddress ? [ownerAddress] : undefined,
+      query: { enabled: !!tokenAddress && !!ownerAddress },
+    });
+
+  // Get allowance
+  const { data: allowance = BigInt(0), refetch: refetchAllowance } =
+    useReadContract({
+      address: tokenAddress,
+      abi: ERC20_ABI,
+      functionName: "allowance",
+      args:
+        ownerAddress && spenderAddress
+          ? [ownerAddress, spenderAddress]
+          : undefined,
+      query: { enabled: !!tokenAddress && !!ownerAddress && !!spenderAddress },
+    });
+
+  // Approve tokens
+  const approve = async (amount: bigint) => {
+    if (!tokenAddress || !spenderAddress) {
+      throw new Error("Token address or spender address not set");
+    }
+
+    const hash = await writeContractAsync({
+      address: tokenAddress,
+      abi: ERC20_ABI,
+      functionName: "approve",
+      args: [spenderAddress, amount],
+    });
+
+    return hash;
+  };
+
+  return {
+    balance,
+    allowance,
+    approve,
+    isLoading: false,
+    refetch: () => {
+      refetchBalance();
+      refetchAllowance();
+    },
+  };
+}

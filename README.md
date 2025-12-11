@@ -181,7 +181,7 @@ npm run dev
 **`TokenMinting.sol` (Main Protocol)**
 
 - Core protocol logic and token management
-- Multi-protocol support (6 protocols: SushiSwap, Curve Finance, Aave, Uniswap V3, Compound, MakerDAO)
+- Multi-protocol support (6 protocols: SushiSwap, Curve Finance, Aave, Uniswap V3, Compound, PancakeSwap)
 - Automatic protocol setup in constructor with 0% fees
 - Integrated insurance and principal token creation
 
@@ -245,7 +245,7 @@ Current insurance coverage includes:
 - **Uniswap V3** - DEX insurance coverage
 - **Curve Finance** - Stablecoin pool protection
 - **SushiSwap** - Exchange insurance
-- **MakerDAO** - CDP and stability fee coverage
+- **PancakeSwap** - DEX on BNB
 
 ## 📈 Future Roadmap
 

@@ -1,11 +1,51 @@
 import deployments from "./deployments.json";
 
 // Contract addresses from deployment
-export const TOKEN_MINTING_CONTRACT_ADDRESS = deployments.contracts.TokenMinting as `0x${string}`;
+export const TOKEN_MINTING_CONTRACT_ADDRESS = deployments.contracts
+  .TokenMinting as `0x${string}`;
+export const DEX_CONTRACT_ADDRESS = deployments.contracts.Dex as `0x${string}`;
 
 // Mock stablecoin addresses from deployment (for localhost testing)
 export const USDT_ADDRESS = deployments.contracts.MockUSDT as `0x${string}`;
 export const USDC_ADDRESS = deployments.contracts.MockUSDC as `0x${string}`;
+
+// Protocol token addresses
+export const PROTOCOL_TOKENS = {
+  sushiswap: {
+    insuranceToken: deployments.protocols.SushiSwap
+      .insuranceToken as `0x${string}`,
+    principalToken: deployments.protocols.SushiSwap
+      .principalToken as `0x${string}`,
+  },
+  "curve-finance": {
+    insuranceToken: deployments.protocols.CurveFinance
+      .insuranceToken as `0x${string}`,
+    principalToken: deployments.protocols.CurveFinance
+      .principalToken as `0x${string}`,
+  },
+  aave: {
+    insuranceToken: deployments.protocols.Aave.insuranceToken as `0x${string}`,
+    principalToken: deployments.protocols.Aave.principalToken as `0x${string}`,
+  },
+  "uniswap-v3": {
+    insuranceToken: deployments.protocols.UniswapV3
+      .insuranceToken as `0x${string}`,
+    principalToken: deployments.protocols.UniswapV3
+      .principalToken as `0x${string}`,
+  },
+  compound: {
+    insuranceToken: deployments.protocols.Compound
+      .insuranceToken as `0x${string}`,
+    principalToken: deployments.protocols.Compound
+      .principalToken as `0x${string}`,
+  },
+  pancakeSwap: {
+    insuranceToken: deployments.protocols.PancakeSwap
+      .insuranceToken as `0x${string}`,
+    principalToken: deployments.protocols.PancakeSwap
+      .principalToken as `0x${string}`,
+  },
+} as const;
 
 // Token decimals
 export const STABLECOIN_DECIMALS = 6; // USDT and USDC typically use 6 decimals
@@ -120,4 +160,3 @@ export const ERC20_ABI = [
     type: "function",
   },
 ] as const;
-
