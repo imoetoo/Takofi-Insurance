@@ -1,21 +1,17 @@
 "use client";
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Chip,
-} from "@mui/material";
+import { Card, CardContent, Typography, Box, Chip } from "@mui/material";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useInsuranceMarketMetrics } from "@/hooks/useTokenMinting";
+import {
+  parseInsuranceMetrics,
+  formatAnnualFee,
+  formatCapacityDisplay,
+} from "@/utils/insuranceCalculations";
 
 interface InsuranceListingCardProps {
   title: string;
   provider: string;
-  minRate: string;
-  maxRate: string;
-  capacity: string;
-  capacityUSD: string;
   isNew?: boolean;
   protocol: "defi" | "lending" | "exchange" | "other";
 }
@@ -48,14 +44,17 @@ const getProtocolLogo = (title: string): string => {
 export default function InsuranceListingCard({
   title,
   provider,
-  minRate,
-  maxRate,
-  capacity,
-  capacityUSD,
   isNew = false,
   protocol,
 }: InsuranceListingCardProps) {
   const router = useRouter();
+
+  // Fetch real-time insurance market metrics
+  const { data: metrics, isLoading } = useInsuranceMarketMetrics(title);
+
+  // Parse metrics using utility function
+  const { availableCapacity, totalValueLocked, annualFeePercentage } =
+    parseInsuranceMetrics(metrics);
 
   const handleClick = () => {
     // Convert title to URL-friendly protocol name
@@ -154,14 +153,12 @@ export default function InsuranceListingCard({
               mb: 0.5,
             }}
           >
-            {minRate}%{" "}
-            <Typography component="span" sx={{ color: "text.secondary" }}>
-              ←→
-            </Typography>{" "}
-            {maxRate}%
+            {isLoading ? "Loading..." : formatAnnualFee(annualFeePercentage)}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {capacity} ETH / {capacityUSD}m USD
+            {isLoading
+              ? "..."
+              : formatCapacityDisplay(availableCapacity, totalValueLocked)}
           </Typography>
         </Box>
       </CardContent>

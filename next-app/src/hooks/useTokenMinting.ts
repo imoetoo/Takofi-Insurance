@@ -128,3 +128,18 @@ export function useProtocolInfo(protocolName: string) {
     args: [protocolId],
   });
 }
+
+// Hook for reading insurance market metrics (Available Capacity, TVL, Annual Fee, IT Price)
+export function useInsuranceMarketMetrics(protocolName: string) {
+  const protocolId = keccak256(toBytes(protocolName));
+
+  return useReadContract({
+    address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
+    abi: TOKEN_MINTING_ABI,
+    functionName: "getInsuranceMarketMetrics",
+    args: [protocolId],
+    query: {
+      refetchInterval: false, // Fetch only once on page load
+    },
+  });
+}

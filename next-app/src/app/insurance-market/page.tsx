@@ -19,7 +19,7 @@ import { RoundedTabs, Tab } from "@/components/RoundedTabs";
 import * as commonStyles from "@/styles/commonStyles";
 import { insuranceListings } from "./insuranceListings";
 
-// Available categories based on protocols
+// Available categories based on protocols (could be made dynamic later)
 const categories = ["All categories", "Exchange", "DeFi", "Lending"];
 
 export default function InsuranceMarket() {
@@ -134,10 +134,6 @@ export default function InsuranceMarket() {
                     key={index}
                     title={listing.title}
                     provider={listing.provider}
-                    minRate={listing.minRate}
-                    maxRate={listing.maxRate}
-                    capacity={listing.capacity}
-                    capacityUSD={listing.capacityUSD}
                     isNew={listing.isNew}
                     protocol={listing.protocol}
                   />

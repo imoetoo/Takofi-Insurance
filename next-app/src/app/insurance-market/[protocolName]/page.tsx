@@ -37,6 +37,11 @@ import Image from "next/image";
 import * as commonStyles from "@/styles/commonStyles";
 import { useDex, Order, PRICE_PRECISION } from "@/hooks/useDex";
 import { useERC20 } from "@/hooks/useERC20";
+import { useInsuranceMarketMetrics } from "@/hooks/useTokenMinting";
+import {
+  parseInsuranceMetrics,
+  formatAnnualFee,
+} from "@/utils/insuranceCalculations";
 import {
   DEX_CONTRACT_ADDRESS,
   USDT_ADDRESS,
@@ -49,7 +54,6 @@ interface InsuranceData {
   title: string;
   provider: string;
   protocol: string;
-  currentRate: string;
   isNew: boolean;
 }
 
@@ -59,42 +63,36 @@ const getInsuranceData = (protocolName: string): InsuranceData | undefined => {
       title: "SushiSwap",
       provider: "SushiSwap Insurance Token",
       protocol: "exchange",
-      currentRate: "26.98%",
       isNew: true,
     },
     "curve-finance": {
       title: "Curve Finance",
       provider: "Curve Finance Insurance Token",
       protocol: "defi",
-      currentRate: "25.45%",
       isNew: false,
     },
     aave: {
       title: "Aave",
       provider: "Aave Insurance Token",
       protocol: "lending",
-      currentRate: "24.12%",
       isNew: false,
     },
     "uniswap-v3": {
       title: "Uniswap V3",
       provider: "Uniswap Insurance Token",
       protocol: "exchange",
-      currentRate: "28.76%",
       isNew: false,
     },
     compound: {
       title: "Compound",
       provider: "Compound Insurance Token",
       protocol: "lending",
-      currentRate: "23.89%",
       isNew: false,
     },
     pancakeswap: {
       title: "PancakeSwap",
       provider: "PancakeSwap Insurance Token",
       protocol: "exchange",
-      currentRate: "22.34%",
       isNew: false,
     },
   };
@@ -144,6 +142,13 @@ export default function InsuranceDetailPage() {
   const [success, setSuccess] = useState<string>("");
 
   const insuranceData = getInsuranceData(protocolName);
+
+  // Fetch dynamic annual fee percentage
+  const { data: metrics, isLoading: isMetricsLoading } =
+    useInsuranceMarketMetrics(insuranceData?.title || protocolName);
+  const { annualFeePercentage } = metrics
+    ? parseInsuranceMetrics(metrics)
+    : { annualFeePercentage: 0 };
 
   // Get token addresses
   const insuranceTokenAddress =
@@ -353,9 +358,6 @@ export default function InsuranceDetailPage() {
       setSuccess("Taking order...");
       await takeOrder(order.id, formatUnits(remainingAmount, 18));
       setSuccess("Order executed successfully!");
-      setSuccess("Taking order...");
-      await takeOrder(order.id, formatUnits(remainingAmount, 18));
-      setSuccess("Order executed successfully!");
 
       setTimeout(async () => {
         await refetchDex();
@@ -467,14 +469,30 @@ export default function InsuranceDetailPage() {
                   >
                     {insuranceData.provider}
                   </Typography>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography
+                      variant="h5"
+                      sx={{
+                        color: getProtocolColor(insuranceData.protocol),
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Annual Coverage Fee:{" "}
+                      {isMetricsLoading
+                        ? "Loading..."
+                        : formatAnnualFee(annualFeePercentage)}
+                    </Typography>
+                  </Box>
                   <Typography
-                    variant="h5"
-                    sx={{
-                      color: getProtocolColor(insuranceData.protocol),
-                      fontWeight: "bold",
-                    }}
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mt: 1, display: "block" }}
                   >
-                    Current Rate: {insuranceData.currentRate}
+                    {isMetricsLoading
+                      ? "..."
+                      : `${annualFeePercentage.toFixed(
+                          4
+                        )} ${stablecoin} per 1 ${stablecoin} coverage`}
                   </Typography>
                 </Box>
               </Box>

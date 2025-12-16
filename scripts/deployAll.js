@@ -147,10 +147,37 @@ async function main() {
   }
 
   // ============================================
-  // Step 6: Get protocol token addresses and copy to frontend
+  // Step 6: Set DEX contract address in TokenMinting
+  // ============================================
+  console.log("🔗 Step 6: Linking DEX contract to TokenMinting...");
+
+  try {
+    const hre = require("hardhat");
+    const ProtocolInsurance = await hre.ethers.getContractAt(
+      "ProtocolInsurance",
+      tokenMintingAddress
+    );
+
+    // Get the signer (deployer)
+    const [signer] = await hre.ethers.getSigners();
+
+    // Set the DEX contract address in TokenMinting
+    const setDexTx = await ProtocolInsurance.connect(signer).setDexContract(
+      dexAddress
+    );
+    await setDexTx.wait();
+
+    console.log(`   ✅ DEX contract linked to TokenMinting\n`);
+  } catch (error) {
+    console.error("   ⚠️  Failed to link DEX contract:", error.message);
+    console.log("   ℹ️  You may need to manually call setDexContract()\n");
+  }
+
+  // ============================================
+  // Step 7: Get protocol token addresses and copy to frontend
   // ============================================
   console.log(
-    "📋 Step 6: Extracting protocol token addresses and copying to frontend..."
+    "📋 Step 7: Extracting protocol token addresses and copying to frontend..."
   );
 
   try {
