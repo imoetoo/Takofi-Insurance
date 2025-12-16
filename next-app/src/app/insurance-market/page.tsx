@@ -14,10 +14,19 @@ import {
 } from "@mui/material";
 import { Search } from "@mui/icons-material";
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import InsuranceListingCard from "@/components/InsuranceListingCard";
 import { RoundedTabs, Tab } from "@/components/RoundedTabs";
 import * as commonStyles from "@/styles/commonStyles";
 import { insuranceListings } from "./insuranceListings";
+
+//This component is dynamically imported at runtime (client side rendering) to disable SSR
+const MyInsuranceTokens = dynamic(
+  () => import("@/components/MyInsuranceTokens"),
+  {
+    ssr: false,
+  }
+);
 
 // Available categories based on protocols (could be made dynamic later)
 const categories = ["All categories", "Exchange", "DeFi", "Lending"];
@@ -57,104 +66,109 @@ export default function InsuranceMarket() {
           <Tab label="My Insurance Token" />
         </RoundedTabs>
 
-        {/* Main Content Card */}
-        <Card sx={commonStyles.cardStyles}>
-          <CardContent sx={{ p: 3 }}>
-            {/* Header */}
-            <Box sx={commonStyles.headerSectionStyles}>
-              <Typography
-                variant="h4"
-                component="h1" /* for SEO */
-                sx={{
-                  fontWeight: "bold",
-                  color: "text.primary",
-                }}
-              >
-                Browse Tokens
-              </Typography>
-            </Box>
-
-            {/* Search Bar */}
-            <TextField
-              fullWidth
-              placeholder="Search for an insurance token listing"
-              variant="outlined"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              sx={{ mb: 3 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search sx={{ color: "text.secondary" }} />
-                    </InputAdornment>
-                  ),
-                  sx: commonStyles.inputFieldStyles,
-                },
-              }}
-            />
-
-            {/* Filters and Results Count */}
-            <Box sx={commonStyles.filtersContainerStyles}>
-              <Stack direction="row" spacing={2}>
-                <FormControl size="small" sx={{ minWidth: 150 }}>
-                  <Select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    sx={commonStyles.selectStyles}
-                  >
-                    {categories.map((category) => (
-                      <MenuItem key={category} value={category}>
-                        {category}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Stack>
-
-              <Box sx={{ color: "text.secondary" }}>
+        {/* Tab Content */}
+        {tabValue === 0 ? (
+          <Card sx={commonStyles.cardStyles}>
+            <CardContent sx={{ p: 3 }}>
+              {/* Header */}
+              <Box sx={commonStyles.headerSectionStyles}>
                 <Typography
-                  component="span"
-                  sx={{ fontWeight: 600, color: "text.primary" }}
+                  variant="h4"
+                  component="h1" /* for SEO */
+                  sx={{
+                    fontWeight: "bold",
+                    color: "text.primary",
+                  }}
                 >
-                  {filteredListings.length}{" "}
-                  {filteredListings.length === 1 ? "Listing" : "Listings"}
-                </Typography>
-                <Typography component="span" sx={{ ml: 2 }}>
-                  Annual Fee / TVL
+                  Browse Tokens
                 </Typography>
               </Box>
-            </Box>
 
-            {/* Listings */}
-            <Stack spacing={2}>
-              {filteredListings.length > 0 ? (
-                filteredListings.map((listing, index) => (
-                  <InsuranceListingCard
-                    key={index}
-                    title={listing.title}
-                    provider={listing.provider}
-                    isNew={listing.isNew}
-                    protocol={listing.protocol}
-                  />
-                ))
-              ) : (
-                <Box sx={{ textAlign: "center", py: 4 }}>
-                  <Typography variant="h6" color="text.secondary">
-                    No insurance listings found for &quot;{searchTerm}&quot;
-                  </Typography>
+              {/* Search Bar */}
+              <TextField
+                fullWidth
+                placeholder="Search for an insurance token listing"
+                variant="outlined"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                sx={{ mb: 3 }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search sx={{ color: "text.secondary" }} />
+                      </InputAdornment>
+                    ),
+                    sx: commonStyles.inputFieldStyles,
+                  },
+                }}
+              />
+
+              {/* Filters and Results Count */}
+              <Box sx={commonStyles.filtersContainerStyles}>
+                <Stack direction="row" spacing={2}>
+                  <FormControl size="small" sx={{ minWidth: 150 }}>
+                    <Select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      sx={commonStyles.selectStyles}
+                    >
+                      {categories.map((category) => (
+                        <MenuItem key={category} value={category}>
+                          {category}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Stack>
+
+                <Box sx={{ color: "text.secondary" }}>
                   <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mt: 1 }}
+                    component="span"
+                    sx={{ fontWeight: 600, color: "text.primary" }}
                   >
-                    Try searching with different keywords or clear your search.
+                    {filteredListings.length}{" "}
+                    {filteredListings.length === 1 ? "Listing" : "Listings"}
+                  </Typography>
+                  <Typography component="span" sx={{ ml: 2 }}>
+                    Annual Fee / TVL
                   </Typography>
                 </Box>
-              )}
-            </Stack>
-          </CardContent>
-        </Card>
+              </Box>
+
+              {/* Listings */}
+              <Stack spacing={2}>
+                {filteredListings.length > 0 ? (
+                  filteredListings.map((listing, index) => (
+                    <InsuranceListingCard
+                      key={index}
+                      title={listing.title}
+                      provider={listing.provider}
+                      isNew={listing.isNew}
+                      protocol={listing.protocol}
+                    />
+                  ))
+                ) : (
+                  <Box sx={{ textAlign: "center", py: 4 }}>
+                    <Typography variant="h6" color="text.secondary">
+                      No insurance listings found for &quot;{searchTerm}&quot;
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mt: 1 }}
+                    >
+                      Try searching with different keywords or clear your
+                      search.
+                    </Typography>
+                  </Box>
+                )}
+              </Stack>
+            </CardContent>
+          </Card>
+        ) : (
+          <MyInsuranceTokens />
+        )}
       </Container>
     </Box>
   );
