@@ -1,7 +1,7 @@
 "use client";
 
 import { useWriteContract, useReadContract } from "wagmi";
-import { parseUnits, keccak256, toBytes } from "viem";
+import { parseUnits, keccak256, stringToBytes } from "viem";
 import {
   TOKEN_MINTING_CONTRACT_ADDRESS,
   TOKEN_MINTING_ABI,
@@ -10,7 +10,45 @@ import {
   STABLECOIN_DECIMALS,
 } from "@/constants";
 
-export function useTokenMinting() {
+interface ProtocolTokens {
+  itToken: `0x${string}`;
+  ptToken: `0x${string}`;
+}
+
+interface UserTokenBalances {
+  insuranceTokenBalance: bigint;
+  principalTokenBalance: bigint;
+}
+
+interface ProtocolInfo {
+  name: string;
+  tvl: bigint;
+  annualFee: bigint;
+}
+
+// Result tuple from getInsuranceMarketMetrics and getInsuranceMarketMetricsByMaturity
+type InsuranceMarketMetrics = readonly [bigint, bigint, bigint, bigint];
+
+interface UseTokenMintingReturn {
+  mintTokens: (
+    protocolName: string,
+    maturityIndex: number,
+    stablecoinSymbol: string,
+    amount: string
+  ) => Promise<`0x${string}`>;
+  burnTokens: (
+    protocolName: string,
+    insuranceAmount: string,
+    principalAmount: string,
+    preferredStablecoinSymbol: string
+  ) => Promise<`0x${string}`>;
+  getProtocolId: (protocolName: string) => `0x${string}`;
+  isPending: boolean;
+  error: Error | null;
+  hash: `0x${string}` | undefined;
+}
+
+export function useTokenMinting(): UseTokenMintingReturn {
   const {
     writeContractAsync,
     isPending,
@@ -20,30 +58,42 @@ export function useTokenMinting() {
 
   const mintTokens = async (
     protocolName: string,
+    maturityIndex: number,
     stablecoinSymbol: string,
     amount: string
-  ) => {
-    // Convert protocol name to protocolId (bytes32)
-    const protocolId = keccak256(toBytes(protocolName));
+  ): Promise<`0x${string}`> => {
+    try {
+      // Convert protocol name to protocolId (bytes32)
+      const protocolId = keccak256(stringToBytes(protocolName));
 
-    // Determine stablecoin address
-    const stablecoinAddress =
-      stablecoinSymbol === "USDT" ? USDT_ADDRESS : USDC_ADDRESS;
+      // Determine stablecoin address
+      const stablecoinAddress =
+        stablecoinSymbol === "USDT" ? USDT_ADDRESS : USDC_ADDRESS;
 
-    // Convert amount to proper decimals (USDT/USDC typically use 6 decimals)
-    const amountInWei = parseUnits(amount, STABLECOIN_DECIMALS);
+      // Convert amount to proper decimals (USDT/USDC typically use 6 decimals)
+      const amountInWei = parseUnits(amount, STABLECOIN_DECIMALS);
 
-    // Call the mint function and return the promise
-    return writeContractAsync({
-      address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
-      abi: TOKEN_MINTING_ABI,
-      functionName: "mintTokens",
-      args: [protocolId, stablecoinAddress, amountInWei],
-    });
+      // Call the mint function and return the promise
+      return await writeContractAsync({
+        address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
+        abi: TOKEN_MINTING_ABI,
+        functionName: "mintTokens",
+        args: [
+          protocolId,
+          BigInt(maturityIndex),
+          stablecoinAddress,
+          amountInWei,
+        ],
+      });
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error("Minting tokens failed:", error);
+      throw error;
+    }
   };
 
   const getProtocolId = (protocolName: string): `0x${string}` => {
-    return keccak256(toBytes(protocolName));
+    return keccak256(stringToBytes(protocolName)) as `0x${string}`;
   };
 
   const burnTokens = async (
@@ -51,9 +101,9 @@ export function useTokenMinting() {
     insuranceAmount: string,
     principalAmount: string,
     preferredStablecoinSymbol: string
-  ) => {
+  ): Promise<`0x${string}`> => {
     try {
-      const protocolId = keccak256(toBytes(protocolName));
+      const protocolId = keccak256(stringToBytes(protocolName));
       const preferredStablecoin =
         preferredStablecoinSymbol === "USDT" ? USDT_ADDRESS : USDC_ADDRESS;
 
@@ -72,8 +122,9 @@ export function useTokenMinting() {
         ],
       });
     } catch (err) {
-      console.error("Burning tokens failed:", err);
-      throw err;
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error("Burning tokens failed:", error);
+      throw error;
     }
   };
 
@@ -89,14 +140,18 @@ export function useTokenMinting() {
 
 // Hook for reading protocol token addresses
 export function useProtocolTokens(protocolName: string) {
-  const protocolId = keccak256(toBytes(protocolName));
+  const protocolId = keccak256(stringToBytes(protocolName));
 
   return useReadContract({
     address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
     abi: TOKEN_MINTING_ABI,
     functionName: "getProtocolTokens",
     args: [protocolId],
-  });
+  }) as {
+    data: ProtocolTokens | undefined;
+    isLoading: boolean;
+    error: Error | null;
+  };
 }
 
 // Hook for reading user token balances
@@ -104,7 +159,7 @@ export function useUserTokenBalances(
   userAddress: string | undefined,
   protocolName: string
 ) {
-  const protocolId = keccak256(toBytes(protocolName));
+  const protocolId = keccak256(stringToBytes(protocolName));
 
   return useReadContract({
     address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
@@ -114,24 +169,51 @@ export function useUserTokenBalances(
     query: {
       enabled: !!userAddress,
     },
-  });
+  }) as {
+    data: UserTokenBalances | undefined;
+    isLoading: boolean;
+    error: Error | null;
+  };
 }
 
 // Hook for reading protocol information
 export function useProtocolInfo(protocolName: string) {
-  const protocolId = keccak256(toBytes(protocolName));
+  const protocolId = keccak256(stringToBytes(protocolName));
 
   return useReadContract({
     address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
     abi: TOKEN_MINTING_ABI,
     functionName: "protocols",
     args: [protocolId],
-  });
+  }) as {
+    data: ProtocolInfo | undefined;
+    isLoading: boolean;
+    error: Error | null;
+  };
+}
+
+// Hook for reading user IT balance for a specific maturity
+export function useUserITByMaturity(
+  userAddress: string | undefined,
+  protocolName: string,
+  maturityIndex: number
+) {
+  const protocolId = keccak256(stringToBytes(protocolName));
+
+  return useReadContract({
+    address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
+    abi: TOKEN_MINTING_ABI,
+    functionName: "getUserITByMaturity",
+    args: [userAddress as `0x${string}`, protocolId, BigInt(maturityIndex)],
+    query: {
+      enabled: !!userAddress,
+    },
+  }) as { data: bigint | undefined; isLoading: boolean; error: Error | null };
 }
 
 // Hook for reading insurance market metrics (Available Capacity, TVL, Annual Fee, IT Price)
 export function useInsuranceMarketMetrics(protocolName: string) {
-  const protocolId = keccak256(toBytes(protocolName));
+  const protocolId = keccak256(stringToBytes(protocolName));
 
   return useReadContract({
     address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
@@ -141,5 +223,31 @@ export function useInsuranceMarketMetrics(protocolName: string) {
     query: {
       refetchInterval: false, // Fetch only once on page load
     },
-  });
+  }) as {
+    data: InsuranceMarketMetrics | undefined;
+    isLoading: boolean;
+    error: Error | null;
+  };
+}
+
+// Hook for reading insurance market metrics for a specific maturity
+export function useInsuranceMarketMetricsByMaturity(
+  protocolName: string,
+  maturityIndex: number
+) {
+  const protocolId = keccak256(stringToBytes(protocolName));
+
+  return useReadContract({
+    address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
+    abi: TOKEN_MINTING_ABI,
+    functionName: "getInsuranceMarketMetricsByMaturity",
+    args: [protocolId, BigInt(maturityIndex)],
+    query: {
+      refetchInterval: false, // Fetch only once on page load
+    },
+  }) as {
+    data: InsuranceMarketMetrics | undefined;
+    isLoading: boolean;
+    error: Error | null;
+  };
 }

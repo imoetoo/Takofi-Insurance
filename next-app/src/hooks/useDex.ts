@@ -17,6 +17,7 @@ const DEX_ABI = [
       { internalType: "address", name: "quote", type: "address" },
       { internalType: "uint256", name: "baseAmount", type: "uint256" },
       { internalType: "uint256", name: "price", type: "uint256" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
     ],
     name: "placeLimit",
     outputs: [{ internalType: "uint256", name: "orderId", type: "uint256" }],
@@ -44,6 +45,7 @@ const DEX_ABI = [
     inputs: [
       { internalType: "address", name: "base", type: "address" },
       { internalType: "address", name: "quote", type: "address" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
     ],
     name: "getList",
     outputs: [
@@ -76,6 +78,7 @@ const DEX_ABI = [
       { internalType: "address", name: "trader", type: "address" },
       { internalType: "address", name: "base", type: "address" },
       { internalType: "address", name: "quote", type: "address" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
     ],
     name: "getOrdersByTrader",
     outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }],
@@ -212,11 +215,17 @@ interface UseDexProps {
   dexAddress: Address;
   baseToken: Address; // Insurance Token
   quoteToken: Address; // USDT or USDC
+  maturityIndex: number; // Maturity index (0 for 6M, 1 for 12M)
 }
 
 export const PRICE_PRECISION = BigInt(10 ** 18);
 
-export function useDex({ dexAddress, baseToken, quoteToken }: UseDexProps) {
+export function useDex({
+  dexAddress,
+  baseToken,
+  quoteToken,
+  maturityIndex,
+}: UseDexProps) {
   const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient();
@@ -233,12 +242,11 @@ export function useDex({ dexAddress, baseToken, quoteToken }: UseDexProps) {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Get order book lists (buy and sell order IDs)
-  // Get order book lists (buy and sell order IDs)
   const { data: orderLists, refetch: refetchOrderLists } = useReadContract({
     address: dexAddress,
     abi: DEX_ABI,
     functionName: "getList",
-    args: [baseToken, quoteToken],
+    args: [baseToken, quoteToken, BigInt(maturityIndex)],
   });
 
   // Get user's orders
@@ -246,7 +254,9 @@ export function useDex({ dexAddress, baseToken, quoteToken }: UseDexProps) {
     address: dexAddress,
     abi: DEX_ABI,
     functionName: "getOrdersByTrader",
-    args: address ? [address, baseToken, quoteToken] : undefined,
+    args: address
+      ? [address, baseToken, quoteToken, BigInt(maturityIndex)]
+      : undefined,
     query: { enabled: !!address },
   });
 
@@ -428,7 +438,14 @@ export function useDex({ dexAddress, baseToken, quoteToken }: UseDexProps) {
         address: dexAddress,
         abi: DEX_ABI,
         functionName: "placeLimit",
-        args: [actionType, baseToken, quoteToken, amountBigInt, priceBigInt],
+        args: [
+          actionType,
+          baseToken,
+          quoteToken,
+          amountBigInt,
+          priceBigInt,
+          BigInt(maturityIndex),
+        ],
       });
 
       // Wait for transaction confirmation

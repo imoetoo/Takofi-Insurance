@@ -31,6 +31,7 @@ contract Dex is ReentrancyGuard, Ownable {
         uint256 amount;        
         uint256 filled;        // Amount already filled 
         uint256 price;         // Price in quote/base (e.g., USDC per USDT)
+        uint256 maturityIndex; // Maturity index (0 for 6M, 1 for 12M, etc.)
         uint256 ts;            // Timestamp of order creation
         // uint256 expiry;        // Expiry timestamp
         bool active;           
@@ -45,6 +46,7 @@ contract Dex is ReentrancyGuard, Ownable {
         uint256 amount;
         uint256 stopPrice;
         uint256 limitPrice;
+        uint256 maturityIndex; // Maturity index
         uint256 ts;
         bool active;
         bool triggered;
@@ -112,19 +114,19 @@ contract Dex is ReentrancyGuard, Ownable {
         emit FeePercentChanged(oldFeePercent, newFeePercent);
     }
 
-    // Key generation for order pairs
-    function _pairKey(address base, address quote) internal pure returns (bytes32) {
-        return keccak256(abi.encode(base, quote));
+    // Key generation for order pairs (now includes maturity)
+    function _pairKey(address base, address quote, uint256 maturityIndex) internal pure returns (bytes32) {
+        return keccak256(abi.encode(base, quote, maturityIndex));
     }
 
-    // call for orderlist: regarding the base and quote token
-    function getList(address base, address quote) external view returns (uint256[] memory, uint256[] memory) {
-        bytes32 key = _pairKey(base, quote);
+    // call for orderlist: regarding the base and quote token and maturity
+    function getList(address base, address quote, uint256 maturityIndex) external view returns (uint256[] memory, uint256[] memory) {
+        bytes32 key = _pairKey(base, quote, maturityIndex);
         OrderBook storage book = books[key];
         return (book.buyOrders, book.sellOrders);
     }
 
-    function placeLimit(actionType action, address base, address quote, uint256 baseAmount, uint256 price) external nonReentrant returns (uint256 orderId) {
+    function placeLimit(actionType action, address base, address quote, uint256 baseAmount, uint256 price, uint256 maturityIndex) external nonReentrant returns (uint256 orderId) {
         require(base != address(0) && quote != address(0), "Invalid token address");
         require(base != quote, "Base and quote tokens must differ");
         require(baseAmount > 0 && price > 0, "Amount and price must be positive");
@@ -151,6 +153,7 @@ contract Dex is ReentrancyGuard, Ownable {
             amount: baseAmount,
             filled: 0,
             price: price,
+            maturityIndex: maturityIndex,
             ts: block.timestamp,
             active: true
         });
@@ -163,7 +166,7 @@ contract Dex is ReentrancyGuard, Ownable {
         // If still active (not fully filled), add to order book
         Order storage taker = orders[orderId];
         if (taker.active) {
-            bytes32 key = _pairKey(base, quote);
+            bytes32 key = _pairKey(base, quote, maturityIndex);
             OrderBook storage book = books[key];
             if (action == actionType.BUY) {
                 _insertBuy(book.buyOrders, orderId);
@@ -180,7 +183,8 @@ contract Dex is ReentrancyGuard, Ownable {
         address quote,
         uint256 amount,
         uint256 stopPrice,
-        uint256 limitPrice
+        uint256 limitPrice,
+        uint256 maturityIndex
     ) external nonReentrant returns (uint256 stopId) {
         require(base != address(0) && quote != address(0), "Invalid token address");
         require(base != quote, "Base and quote must differ");
@@ -204,12 +208,13 @@ contract Dex is ReentrancyGuard, Ownable {
             amount: amount,
             stopPrice: stopPrice,
             limitPrice: limitPrice,
+            maturityIndex: maturityIndex,
             ts: block.timestamp,
             active: true,
             triggered: false
         });
 
-        bytes32 key = _pairKey(base, quote);
+        bytes32 key = _pairKey(base, quote, maturityIndex);
         StopBook storage sbook = stopBooks[key];
         if (action == actionType.BUY) {
             sbook.buyStops.push(stopId);
@@ -262,7 +267,7 @@ contract Dex is ReentrancyGuard, Ownable {
 
     // Find the index of an order ID in an array and shift elements to remove it
     function _removeFromBook(Order storage o) internal {
-        bytes32 key = _pairKey(o.base, o.quote);
+        bytes32 key = _pairKey(o.base, o.quote, o.maturityIndex);
         OrderBook storage book = books[key];
         uint256[] storage arr = (o.action == actionType.BUY) ? book.buyOrders : book.sellOrders;
         for (uint256 i = 0; i < arr.length; i++) {
@@ -277,7 +282,7 @@ contract Dex is ReentrancyGuard, Ownable {
         Order storage taker = orders[takerId];
         require(taker.active, "Taker order is not active");
 
-        bytes32 key =_pairKey(taker.base, taker.quote);
+        bytes32 key =_pairKey(taker.base, taker.quote, taker.maturityIndex);
         OrderBook storage book = books[key];
 
         // If taker is BUY, match with SELL orders; if taker is SELL, match with BUY orders
@@ -324,7 +329,7 @@ contract Dex is ReentrancyGuard, Ownable {
             maker.filled += tradedBase;
 
             emit OrderFilled(taker.id, maker.id, tradedBase, tradedQuote);
-            _checkAndTriggerStops(taker.base, taker.quote, maker.price);
+            _checkAndTriggerStops(taker.base, taker.quote, taker.maturityIndex, maker.price);
 
             // Check if maker is fully filled
             if (maker.filled == maker.amount) {
@@ -386,7 +391,7 @@ contract Dex is ReentrancyGuard, Ownable {
         require(!so.triggered, "already triggered");
         require(so.trader == msg.sender, "not stop owner");
 
-        bytes32 key = _pairKey(so.base, so.quote);
+        bytes32 key = _pairKey(so.base, so.quote, so.maturityIndex);
         StopBook storage sbook = stopBooks[key];
         
         bool found = false;
@@ -427,9 +432,10 @@ contract Dex is ReentrancyGuard, Ownable {
     function _checkAndTriggerStops(
         address base,
         address quote,
+        uint256 maturityIndex,
         uint256 tradePrice
     ) internal {
-        bytes32 key = _pairKey(base, quote);
+        bytes32 key = _pairKey(base, quote, maturityIndex);
         StopBook storage sb = stopBooks[key];
 
         // Buy-stop: tradePrice >= stopPrice
@@ -482,6 +488,7 @@ contract Dex is ReentrancyGuard, Ownable {
             action: so.action,
             base: so.base,
             quote: so.quote,
+            maturityIndex: so.maturityIndex,
             amount: so.amount,
             filled: 0,
             price: so.limitPrice, 
@@ -539,7 +546,7 @@ contract Dex is ReentrancyGuard, Ownable {
             emit OrderClosed(orderId);
         }
         emit OrderFilled(0, orderId, qty, quoteAmount);
-        _checkAndTriggerStops(o.base, o.quote, o.price);
+        _checkAndTriggerStops(o.base, o.quote, o.maturityIndex, o.price);
     }
 
     // View functions to get order details
@@ -559,8 +566,8 @@ contract Dex is ReentrancyGuard, Ownable {
         return (o.id, o.trader, o.action, o.base, o.quote, o.amount, o.filled, o.price, o.ts, o.active);
     }
 
-    function getOrdersByTrader(address trader, address base, address quote) external view returns (uint256[] memory) {
-        bytes32 key = _pairKey(base, quote);
+    function getOrdersByTrader(address trader, address base, address quote, uint256 maturityIndex) external view returns (uint256[] memory) {
+        bytes32 key = _pairKey(base, quote, maturityIndex);
         OrderBook storage book = books[key];
         
         uint256 count = 0;
@@ -589,8 +596,8 @@ contract Dex is ReentrancyGuard, Ownable {
         return traderOrders;
     }
 
-    function getBestPrice(address base, address quote, actionType action) external view returns (uint256) {
-        bytes32 key = _pairKey(base, quote);
+    function getBestPrice(address base, address quote, uint256 maturityIndex, actionType action) external view returns (uint256) {
+        bytes32 key = _pairKey(base, quote, maturityIndex);
         OrderBook storage book = books[key];
         
         uint256[] storage ordersArr = (action == actionType.BUY) ? book.sellOrders : book.buyOrders;

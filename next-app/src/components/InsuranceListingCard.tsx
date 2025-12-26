@@ -2,12 +2,13 @@
 import { Card, CardContent, Typography, Box, Chip } from "@mui/material";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useInsuranceMarketMetrics } from "@/hooks/useTokenMinting";
+import { useInsuranceMarketMetricsByMaturity } from "@/hooks/useTokenMinting";
 import {
   parseInsuranceMetrics,
   formatAnnualFee,
   formatCapacityDisplay,
 } from "@/utils/insuranceCalculations";
+import { MATURITY_6M, MATURITY_12M } from "@/constants";
 
 interface InsuranceListingCardProps {
   title: string;
@@ -38,7 +39,9 @@ const getProtocolLogo = (title: string): string => {
     Compound: "/protocols/compound.png",
     PancakeSwap: "/protocols/pancakeswap.png",
   };
-  return logoMap[title] || "/protocols/sushiswap.png";
+  // Remove maturity suffix (6M or 12M) from title to get base protocol name
+  const protocolName = title.replace(/\s*\((?:6M|12M)\)\s*$/, "");
+  return logoMap[protocolName] || "/protocols/sushiswap.png";
 };
 
 export default function InsuranceListingCard({
@@ -49,21 +52,33 @@ export default function InsuranceListingCard({
 }: InsuranceListingCardProps) {
   const router = useRouter();
 
-  // Fetch real-time insurance market metrics
-  const { data: metrics, isLoading } = useInsuranceMarketMetrics(title);
+  // Extract base protocol name and maturity variant
+  const baseTitle = title.replace(/\s*\((?:6M|12M)\)\s*$/, "");
+  const maturityMatch = title.match(/\((6M|12M)\)/);
+  const maturity = maturityMatch ? maturityMatch[1] : "6M";
+  const maturityIndex = maturity === "6M" ? MATURITY_6M : MATURITY_12M;
 
-  // Parse metrics using utility function
-  const { availableCapacity, totalValueLocked, annualFeePercentage } =
-    parseInsuranceMetrics(metrics);
+  // Fetch maturity-specific insurance market metrics
+  const { data: metrics, isLoading } = useInsuranceMarketMetricsByMaturity(
+    baseTitle,
+    maturityIndex
+  );
+
+  // Parse metrics using utility function - contract returns [availableCapacity, tvl, annualFee, itPrice]
+  const { availableCapacity, totalValueLocked, annualFeePercentage } = metrics
+    ? parseInsuranceMetrics(metrics)
+    : { availableCapacity: 0, totalValueLocked: 0, annualFeePercentage: 0 };
 
   const handleClick = () => {
-    // Convert title to URL-friendly protocol name
+    // Convert to URL-friendly protocol name
     // makes all lower case, replaces all whitespaces with hyphens, removes special characters
-    const protocolName = title
+    const protocolName = baseTitle
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9-]/g, "");
-    router.push(`/insurance-market/${protocolName}`);
+    // Include maturity variant in URL
+    const maturitySuffix = maturity === "12M" ? "-12m" : "-6m";
+    router.push(`/insurance-market/${protocolName}${maturitySuffix}`);
   };
 
   return (

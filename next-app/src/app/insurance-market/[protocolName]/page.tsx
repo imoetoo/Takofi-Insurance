@@ -37,7 +37,15 @@ import Image from "next/image";
 import * as commonStyles from "@/styles/commonStyles";
 import { useDex, Order, PRICE_PRECISION } from "@/hooks/useDex";
 import { useERC20 } from "@/hooks/useERC20";
-import { useInsuranceMarketMetrics } from "@/hooks/useTokenMinting";
+import {
+  useInsuranceMarketMetricsByMaturity,
+  useUserITByMaturity,
+} from "@/hooks/useTokenMinting";
+import {
+  useMaturities,
+  useDaysUntilMaturity,
+  formatMaturityLabel,
+} from "@/hooks/useMaturity";
 import {
   parseInsuranceMetrics,
   formatAnnualFee,
@@ -47,6 +55,8 @@ import {
   USDT_ADDRESS,
   USDC_ADDRESS,
   PROTOCOL_TOKENS,
+  MATURITY_6M,
+  MATURITY_12M,
 } from "@/constants";
 
 // Mock insurance data - match with your main listings
@@ -128,7 +138,21 @@ const getProtocolColor = (protocol: string) => {
 export default function InsuranceDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const protocolName = params?.protocolName as string;
+  const paramValue = params?.protocolName as string;
+
+  // Extract base protocol name and maturity from URL
+  // e.g., "curve-finance-12m" -> protocolName = "curve-finance", maturity = "12M"
+  const maturityMatch = paramValue?.match(/-(6m|12m)$/i);
+  const maturity = maturityMatch
+    ? maturityMatch[1].toUpperCase() === "6M"
+      ? "6M"
+      : "12M"
+    : "6M";
+  const protocolName = maturityMatch
+    ? paramValue?.replace(/-(6m|12m)$/i, "")
+    : paramValue;
+  const maturityIndex = maturity === "6M" ? MATURITY_6M : MATURITY_12M;
+
   const { address, isConnected } = useAccount();
 
   // State for trading
@@ -143,12 +167,34 @@ export default function InsuranceDetailPage() {
 
   const insuranceData = getInsuranceData(protocolName);
 
-  // Fetch dynamic annual fee percentage
+  // Fetch maturity-specific metrics
   const { data: metrics, isLoading: isMetricsLoading } =
-    useInsuranceMarketMetrics(insuranceData?.title || protocolName);
+    useInsuranceMarketMetricsByMaturity(
+      insuranceData?.title || protocolName,
+      maturityIndex
+    );
+
+  // Parse metrics - contract returns [availableCapacity, tvl, annualFee, itPrice]
   const { annualFeePercentage } = metrics
     ? parseInsuranceMetrics(metrics)
     : { annualFeePercentage: 0 };
+
+  // Fetch maturity data
+  const { maturity6M, maturity12M } = useMaturities(
+    insuranceData?.title || protocolName
+  );
+  const days6M = useDaysUntilMaturity(
+    insuranceData?.title || protocolName,
+    MATURITY_6M
+  );
+  const days12M = useDaysUntilMaturity(
+    insuranceData?.title || protocolName,
+    MATURITY_12M
+  );
+
+  // Get selected maturity data
+  const selectedMaturityDays = maturity === "6M" ? days6M : days12M;
+  const selectedMaturityBucket = maturity === "6M" ? maturity6M : maturity12M;
 
   // Get token addresses
   const insuranceTokenAddress =
@@ -156,7 +202,7 @@ export default function InsuranceDetailPage() {
       ?.insuranceToken;
   const quoteTokenAddress = stablecoin === "USDT" ? USDT_ADDRESS : USDC_ADDRESS;
 
-  // Use DEX hook
+  // Use DEX hook with maturity-specific order book
   const {
     orderBook,
     userOrders,
@@ -171,24 +217,29 @@ export default function InsuranceDetailPage() {
     dexAddress: DEX_CONTRACT_ADDRESS,
     baseToken: insuranceTokenAddress || ("0x0" as `0x${string}`),
     quoteToken: quoteTokenAddress,
+    maturityIndex: maturityIndex,
   });
 
-  // Use ERC20 hooks for approvals
-  const {
-    balance: insuranceBalance,
-    allowance: insuranceAllowance,
-    approve: approveInsurance,
-  } = useERC20(
-    insuranceTokenAddress || ("0x0" as `0x${string}`),
+  // Use maturity-specific balance hook
+  const { data: insuranceBalance } = useUserITByMaturity(
     address,
-    DEX_CONTRACT_ADDRESS
+    insuranceData?.title || protocolName,
+    maturityIndex
   );
 
+  // Use ERC20 hooks for stablecoin balance/approval
   const {
     balance: stablecoinBalance,
     allowance: stablecoinAllowance,
     approve: approveStablecoin,
   } = useERC20(quoteTokenAddress, address, DEX_CONTRACT_ADDRESS);
+
+  // Get insurance token allowance and approval for DEX (may not be needed if tokens are minted directly to user)
+  const { allowance: insuranceAllowance, approve: approveInsurance } = useERC20(
+    insuranceTokenAddress || ("0x0" as `0x${string}`),
+    address,
+    DEX_CONTRACT_ADDRESS
+  );
 
   // Auto-fill price with best available
   useEffect(() => {
@@ -437,63 +488,74 @@ export default function InsuranceDetailPage() {
                 </Box>
                 <Box sx={{ flex: 1 }}>
                   <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 2,
-                      mb: 1,
-                    }}
+                    sx={{ display: "flex", flexDirection: "column", gap: 1 }}
                   >
-                    <Typography
-                      variant="h4"
-                      sx={{ fontWeight: "bold", color: "text.primary" }}
-                    >
-                      {insuranceData.title}
-                    </Typography>
-                    {insuranceData.isNew && (
-                      <Chip
-                        label="New"
-                        size="small"
-                        sx={{
-                          backgroundColor: "#d1fae5",
-                          color: "#065f46",
-                          fontSize: "0.75rem",
-                        }}
-                      />
-                    )}
-                  </Box>
-                  <Typography
-                    variant="body1"
-                    color="text.secondary"
-                    sx={{ mb: 2 }}
-                  >
-                    {insuranceData.provider}
-                  </Typography>
-                  <Box sx={{ mb: 1 }}>
-                    <Typography
-                      variant="h5"
+                    <Box
                       sx={{
-                        color: getProtocolColor(insuranceData.protocol),
-                        fontWeight: "bold",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        mb: 1,
                       }}
                     >
-                      Annual Coverage Fee:{" "}
-                      {isMetricsLoading
-                        ? "Loading..."
-                        : formatAnnualFee(annualFeePercentage)}
+                      <Typography
+                        variant="h4"
+                        sx={{ fontWeight: "bold", color: "text.primary" }}
+                      >
+                        {insuranceData.title} ({maturity})
+                      </Typography>
+                      {insuranceData.isNew && (
+                        <Chip
+                          label="New"
+                          size="small"
+                          sx={{
+                            backgroundColor: "#d1fae5",
+                            color: "#065f46",
+                            fontSize: "0.75rem",
+                          }}
+                        />
+                      )}
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ ml: "auto" }}
+                      >
+                        Expires:{" "}
+                        {selectedMaturityBucket
+                          ? formatMaturityLabel(selectedMaturityBucket)
+                          : "..."}{" "}
+                        • {selectedMaturityDays} days remaining
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      {insuranceData.provider}
                     </Typography>
+                    <Box sx={{ mt: 2 }}>
+                      <Typography
+                        variant="h5"
+                        sx={{
+                          color: getProtocolColor(insuranceData.protocol),
+                          fontWeight: "bold",
+                        }}
+                      >
+                        Annual Coverage Fee:{" "}
+                        {isMetricsLoading
+                          ? "Loading..."
+                          : formatAnnualFee(annualFeePercentage)}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: "block", mt: 0.5 }}
+                      >
+                        {isMetricsLoading
+                          ? "..."
+                          : `${(annualFeePercentage / 100).toFixed(
+                              6
+                            )} ${stablecoin} per 1 ${stablecoin} coverage`}
+                      </Typography>
+                    </Box>
                   </Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ mt: 1, display: "block" }}
-                  >
-                    {isMetricsLoading
-                      ? "..."
-                      : `${annualFeePercentage.toFixed(
-                          4
-                        )} ${stablecoin} per 1 ${stablecoin} coverage`}
-                  </Typography>
                 </Box>
               </Box>
 
@@ -1002,9 +1064,9 @@ export default function InsuranceDetailPage() {
                     <Typography variant="caption" color="text.secondary">
                       Max:{" "}
                       {tradeType === "sell"
-                        ? parseFloat(formatUnits(insuranceBalance, 18)).toFixed(
-                            4
-                          )
+                        ? parseFloat(
+                            formatUnits(insuranceBalance || BigInt(0), 18)
+                          ).toFixed(4)
                         : "∞"}{" "}
                       IT
                     </Typography>
@@ -1117,7 +1179,7 @@ export default function InsuranceDetailPage() {
                       {isConnected
                         ? tradeType === "buy"
                           ? formatUnits(stablecoinBalance, 6)
-                          : formatUnits(insuranceBalance, 18)
+                          : formatUnits(insuranceBalance || BigInt(0), 18)
                         : "0.00"}
                     </Typography>
                   </Box>

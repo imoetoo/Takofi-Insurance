@@ -12,9 +12,10 @@ import {
   Divider,
   Stack,
   CircularProgress,
+  Alert,
 } from "@mui/material";
 import { AccessTime, Info } from "@mui/icons-material";
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useAccount, useConfig } from "wagmi";
 import { parseUnits } from "viem";
 import { waitForTransactionReceipt } from "wagmi/actions";
@@ -27,11 +28,26 @@ import { insuranceListings } from "@/app/insurance-market/insuranceListings";
 import { useTokenMinting } from "@/hooks/useTokenMinting";
 import { useERC20Approval, useERC20Allowance } from "@/hooks/useERC20";
 import {
+  useMaturities,
+  formatMaturityLabel,
+  useDaysUntilMaturity,
+} from "@/hooks/useMaturity";
+import {
   TOKEN_MINTING_CONTRACT_ADDRESS,
   USDT_ADDRESS,
   USDC_ADDRESS,
   STABLECOIN_DECIMALS,
+  MATURITY_6M,
+  MATURITY_12M,
 } from "@/constants";
+
+interface MintTokensState {
+  inputAmount: string;
+  sendToAnotherAddress: boolean;
+  recipientAddress: string;
+  isProcessing: boolean;
+  selectedMaturity: number;
+}
 
 // Available input tokens (USDT/USDC)
 const inputTokens = [
@@ -51,15 +67,26 @@ const inputTokens = [
   },
 ];
 
+// Create unique list of base protocols for the selector (only 6M variants)
+const uniqueBaseProtocols = insuranceListings
+  .filter((listing) => !listing.title.match(/\(12M\)$/i))
+  .map((listing) => ({
+    ...listing,
+    title: listing.title.replace(/\s*\(6M\)\s*$/i, ""),
+  }));
+
 export default function MintTokens() {
   const [inputToken, setInputToken] = useState(inputTokens[0]);
   const [selectedProtocol, setSelectedProtocol] = useState(
-    insuranceListings[0]
+    uniqueBaseProtocols[0]
   );
-  const [inputAmount, setInputAmount] = useState("");
-  const [sendToAnotherAddress, setSendToAnotherAddress] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [recipientAddress, setRecipientAddress] = useState("");
+  const [state, setState] = useState<MintTokensState>({
+    inputAmount: "",
+    sendToAnotherAddress: false,
+    recipientAddress: "",
+    isProcessing: false,
+    selectedMaturity: MATURITY_6M,
+  });
 
   // Wagmi hooks
   const { address, isConnected } = useAccount();
@@ -67,6 +94,17 @@ export default function MintTokens() {
 
   // Contract hooks
   const { mintTokens, isPending: isMinting } = useTokenMinting();
+
+  // Extract base protocol name (remove maturity suffix like "(6M)" or "(12M)")
+  const baseProtocolName = selectedProtocol.title.replace(
+    /\s*\((?:6M|12M)\)\s*$/i,
+    ""
+  );
+
+  // Maturity hooks
+  const { maturity6M, maturity12M } = useMaturities(baseProtocolName);
+  const days6M = useDaysUntilMaturity(baseProtocolName, MATURITY_6M);
+  const days12M = useDaysUntilMaturity(baseProtocolName, MATURITY_12M);
 
   // Get token address based on selection
   const tokenAddress =
@@ -89,45 +127,62 @@ export default function MintTokens() {
 
   // Check if user has sufficient allowance
   const hasAllowance =
-    allowance && inputAmount
-      ? allowance >= parseUnits(inputAmount, STABLECOIN_DECIMALS)
+    allowance && state.inputAmount
+      ? allowance >= parseUnits(state.inputAmount, STABLECOIN_DECIMALS)
       : false;
 
   // Calculate fee (0% = 0 basis points)
   const feeAmount = "0";
-  const netAmount = inputAmount || "0";
+  const netAmount = state.inputAmount || "0";
+
+  // Get maturity data
+  const maturities = [maturity6M, maturity12M];
+  const daysRemaining = [days6M, days12M];
+  const selectedDays = daysRemaining[state.selectedMaturity];
 
   // Handler for protocol change
   const handleProtocolChange = (protocol: (typeof insuranceListings)[0]) => {
+    setState((prev) => ({
+      ...prev,
+      selectedMaturity: MATURITY_6M, // Reset to 6M when protocol changes
+    }));
     setSelectedProtocol(protocol);
-    // Keep approval state since it's token-specific, not protocol-specific
   };
 
-  // Reset messages when token changes (not needed with toast)
-  useEffect(() => {
-    // Clear input when token changes
-  }, [inputToken.symbol]);
-
   const handleInputAmountChange = (value: string) => {
-    setInputAmount(value);
+    setState((prev) => ({ ...prev, inputAmount: value }));
+  };
+
+  const handleMaturitySelect = (maturityIndex: number): void => {
+    setState((prev) => ({ ...prev, selectedMaturity: maturityIndex }));
   };
 
   // Handle minting with automatic approval
-  const handleMintWithApproval = async () => {
-    if (!inputAmount || !address || !selectedProtocol) return;
+  const handleMintWithApproval = useCallback(async (): Promise<void> => {
+    if (!state.inputAmount || !address || !selectedProtocol) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
 
-    setIsProcessing(true);
+    if (selectedDays <= 0) {
+      toast.error(
+        "Selected maturity has expired. Please choose another bucket."
+      );
+      return;
+    }
+
+    setState((prev) => ({ ...prev, isProcessing: true }));
 
     try {
       // Check if approval is needed
       const needsApproval = !hasAllowance;
 
       if (needsApproval) {
-        console.log("Requesting approval for amount:", inputAmount);
+        console.log("Requesting approval for amount:", state.inputAmount);
 
         try {
           // Trigger approval transaction and get hash directly
-          const approvalTxHash = await approve(inputAmount);
+          const approvalTxHash = await approve(state.inputAmount);
           console.log("Approval transaction submitted:", approvalTxHash);
 
           console.log("Waiting for approval confirmation...");
@@ -155,15 +210,18 @@ export default function MintTokens() {
         "Token:",
         inputToken.symbol,
         "Amount:",
-        inputAmount
+        state.inputAmount,
+        "Maturity:",
+        state.selectedMaturity
       );
 
       try {
-        // Trigger mint transaction and get hash directly
+        // Trigger mint transaction with maturityIndex
         const mintTransactionHash = await mintTokens(
-          selectedProtocol.title,
+          baseProtocolName,
+          state.selectedMaturity,
           inputToken.symbol,
-          inputAmount
+          state.inputAmount
         );
         console.log("Mint transaction submitted:", mintTransactionHash);
 
@@ -182,14 +240,16 @@ export default function MintTokens() {
 
       // Show success only after both transactions are ACTUALLY confirmed
       console.log("Both transactions confirmed! Showing success toast...");
+      const maturityLabel =
+        state.selectedMaturity === MATURITY_6M ? "6-Month" : "12-Month";
       toast.success(
-        `Successfully minted ${netAmount} i${selectedProtocol.title} and p${selectedProtocol.title} tokens!`,
+        `Successfully minted ${netAmount} i${baseProtocolName} and p${baseProtocolName} tokens (${maturityLabel})!`,
         {
           duration: 4000,
           icon: "🎉",
         }
       );
-      setInputAmount("");
+      setState((prev) => ({ ...prev, inputAmount: "" }));
 
       // Refetch allowance in background, don't let it fail the whole process
       refetchAllowance().catch((refetchError) => {
@@ -253,9 +313,23 @@ export default function MintTokens() {
         icon: "❌",
       });
     } finally {
-      setIsProcessing(false);
+      setState((prev) => ({ ...prev, isProcessing: false }));
     }
-  };
+  }, [
+    state.inputAmount,
+    state.selectedMaturity,
+    address,
+    selectedProtocol,
+    selectedDays,
+    hasAllowance,
+    approve,
+    config,
+    mintTokens,
+    inputToken.symbol,
+    refetchAllowance,
+    netAmount,
+    baseProtocolName,
+  ]);
 
   return (
     <Box sx={commonStyles.pageContainerStyles}>
@@ -292,6 +366,9 @@ export default function MintTokens() {
                       • Select a protocol to mint insurance tokens for
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
+                      • Choose a maturity bucket (6-month or 12-month)
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
                       • Enter USDT/USDC amount to mint tokens
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -313,10 +390,80 @@ export default function MintTokens() {
                   {/* Protocol Selection */}
                   <Box sx={{ mb: 2.5 }}>
                     <ProtocolSelector
+                      // @ts-expect-error - insuranceListings has compatible structure
                       selectedProtocol={selectedProtocol}
+                      // @ts-expect-error - compatible protocol types
                       onProtocolChange={handleProtocolChange}
-                      protocols={insuranceListings}
+                      // @ts-expect-error - compatible protocol array
+                      protocols={uniqueBaseProtocols}
                     />
+                  </Box>
+
+                  {/* Maturity Selection */}
+                  <Box sx={{ mb: 3 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ mb: 1.5, color: "text.secondary", fontWeight: 600 }}
+                    >
+                      Select Token Maturity
+                    </Typography>
+                    <Stack direction="row" spacing={2}>
+                      {[MATURITY_6M, MATURITY_12M].map((idx) => (
+                        <Card
+                          key={idx}
+                          onClick={() => handleMaturitySelect(idx)}
+                          sx={{
+                            flex: 1,
+                            p: 2,
+                            cursor: "pointer",
+                            border:
+                              state.selectedMaturity === idx
+                                ? "2px solid #f97316"
+                                : "1px solid #374151",
+                            backgroundColor:
+                              state.selectedMaturity === idx
+                                ? "#1f293722"
+                                : "transparent",
+                            transition: "all 0.2s",
+                            "&:hover": {
+                              backgroundColor: "#1f293722",
+                              borderColor: "#f97316",
+                            },
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: "bold",
+                              color: "#f97316",
+                              mb: 0.5,
+                            }}
+                          >
+                            {idx === MATURITY_6M ? "6-Month" : "12-Month"}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Expires: {formatMaturityLabel(maturities[idx])}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", mt: 0.5 }}
+                          >
+                            {daysRemaining[idx]} days remaining
+                          </Typography>
+                        </Card>
+                      ))}
+                    </Stack>
+                    {selectedDays < 30 && selectedDays > 0 && (
+                      <Alert severity="warning" sx={{ mt: 2 }}>
+                        ⏰ This maturity has less than 30 days remaining
+                      </Alert>
+                    )}
+                    {selectedDays <= 0 && (
+                      <Alert severity="error" sx={{ mt: 2 }}>
+                        ❌ This maturity has expired
+                      </Alert>
+                    )}
                   </Box>
 
                   {/* From Token */}
@@ -326,7 +473,7 @@ export default function MintTokens() {
                       selectedToken={inputToken}
                       onTokenChange={setInputToken}
                       availableTokens={inputTokens}
-                      amount={inputAmount}
+                      amount={state.inputAmount}
                       onAmountChange={handleInputAmountChange}
                       placeholder="0"
                       helperText="$0"
@@ -483,9 +630,12 @@ export default function MintTokens() {
                   {/* Send to Another Address Toggle */}
                   <Box sx={mintStyles.addressToggleStyles}>
                     <Switch
-                      checked={sendToAnotherAddress}
+                      checked={state.sendToAnotherAddress}
                       onChange={(e) =>
-                        setSendToAnotherAddress(e.target.checked)
+                        setState((prev) => ({
+                          ...prev,
+                          sendToAnotherAddress: e.target.checked,
+                        }))
                       }
                       size="small"
                     />
@@ -495,13 +645,18 @@ export default function MintTokens() {
                   </Box>
 
                   {/* Recipient Address Input */}
-                  {sendToAnotherAddress && (
+                  {state.sendToAnotherAddress && (
                     <Box sx={{ mt: 2, mb: 3 }}>
                       <TextField
                         fullWidth
                         placeholder="Enter recipient address"
-                        value={recipientAddress}
-                        onChange={(e) => setRecipientAddress(e.target.value)}
+                        value={state.recipientAddress}
+                        onChange={(e) =>
+                          setState((prev) => ({
+                            ...prev,
+                            recipientAddress: e.target.value,
+                          }))
+                        }
                         slotProps={{
                           input: {
                             sx: commonStyles.inputFieldStyles,
@@ -571,14 +726,15 @@ export default function MintTokens() {
                       variant="contained"
                       onClick={handleMintWithApproval}
                       disabled={
-                        !inputAmount ||
-                        parseFloat(inputAmount) <= 0 ||
+                        !state.inputAmount ||
+                        parseFloat(state.inputAmount) <= 0 ||
                         isMinting ||
-                        isProcessing
+                        state.isProcessing ||
+                        selectedDays <= 0
                       }
                       sx={mintStyles.connectButtonStyles}
                     >
-                      {isMinting || isProcessing ? (
+                      {isMinting || state.isProcessing ? (
                         <>
                           <CircularProgress size={20} sx={{ mr: 1 }} />
                           {!hasAllowance
@@ -586,7 +742,11 @@ export default function MintTokens() {
                             : "Processing..."}
                         </>
                       ) : (
-                        "Mint Insurance & Principal Tokens"
+                        `Mint ${
+                          state.selectedMaturity === MATURITY_6M
+                            ? "6-Month"
+                            : "12-Month"
+                        } Tokens`
                       )}
                     </Button>
                   )}

@@ -1,5 +1,9 @@
 import deployments from "./deployments.json";
 
+// Maturity bucket indices
+export const MATURITY_6M = 0;
+export const MATURITY_12M = 1;
+
 // Contract addresses from deployment
 export const TOKEN_MINTING_CONTRACT_ADDRESS = deployments.contracts
   .TokenMinting as `0x${string}`;
@@ -51,11 +55,12 @@ export const PROTOCOL_TOKENS = {
 export const STABLECOIN_DECIMALS = 6; // USDT and USDC typically use 6 decimals
 export const PRICE_PRECISION = 1e18; // Price scaling factor: price = actualPrice × 1e18 (supports 18 decimal places) from Dex.sol
 
-// TokenMinting contract ABI - essential functions only
+// TokenMinting contract ABI - updated with maturity bucket support
 export const TOKEN_MINTING_ABI = [
   {
     inputs: [
       { internalType: "bytes32", name: "protocolId", type: "bytes32" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
       { internalType: "address", name: "stablecoin", type: "address" },
       { internalType: "uint256", name: "amount", type: "uint256" },
     ],
@@ -74,6 +79,90 @@ export const TOKEN_MINTING_ABI = [
     name: "burnTokens",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "protocolId", type: "bytes32" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
+    ],
+    name: "getMaturity",
+    outputs: [
+      { internalType: "uint256", name: "expiryTime", type: "uint256" },
+      { internalType: "string", name: "label", type: "string" },
+      { internalType: "bool", name: "isActive", type: "bool" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "bytes32", name: "protocolId", type: "bytes32" }],
+    name: "getMaturities",
+    outputs: [
+      {
+        components: [
+          { internalType: "uint256", name: "expiryTime", type: "uint256" },
+          { internalType: "string", name: "label", type: "string" },
+          { internalType: "bool", name: "isActive", type: "bool" },
+        ],
+        internalType: "struct ProtocolInsurance.MaturityBucket",
+        name: "maturity6M",
+        type: "tuple",
+      },
+      {
+        components: [
+          { internalType: "uint256", name: "expiryTime", type: "uint256" },
+          { internalType: "string", name: "label", type: "string" },
+          { internalType: "bool", name: "isActive", type: "bool" },
+        ],
+        internalType: "struct ProtocolInsurance.MaturityBucket",
+        name: "maturity12M",
+        type: "tuple",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "protocolId", type: "bytes32" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
+    ],
+    name: "isMaturityExpired",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "protocolId", type: "bytes32" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
+    ],
+    name: "getDaysUntilMaturity",
+    outputs: [{ internalType: "uint256", name: "days", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "address", name: "user", type: "address" },
+      { internalType: "bytes32", name: "protocolId", type: "bytes32" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
+    ],
+    name: "getUserITByMaturity",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "address", name: "user", type: "address" },
+      { internalType: "bytes32", name: "protocolId", type: "bytes32" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
+    ],
+    name: "getUserPTByMaturity",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -153,6 +242,21 @@ export const TOKEN_MINTING_ABI = [
   {
     inputs: [{ internalType: "bytes32", name: "protocolId", type: "bytes32" }],
     name: "getInsuranceMarketMetrics",
+    outputs: [
+      { internalType: "uint256", name: "availableCapacity", type: "uint256" },
+      { internalType: "uint256", name: "totalValueLocked", type: "uint256" },
+      { internalType: "uint256", name: "annualFeePercentage", type: "uint256" },
+      { internalType: "uint256", name: "itPrice", type: "uint256" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "protocolId", type: "bytes32" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
+    ],
+    name: "getInsuranceMarketMetricsByMaturity",
     outputs: [
       { internalType: "uint256", name: "availableCapacity", type: "uint256" },
       { internalType: "uint256", name: "totalValueLocked", type: "uint256" },
