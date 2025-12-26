@@ -17,13 +17,15 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import * as commonStyles from "@/styles/commonStyles";
 import { insuranceListings } from "@/app/insurance-market/insuranceListings";
-import { PROTOCOL_TOKENS } from "@/constants";
-import { useERC20Balance } from "@/hooks/useERC20";
+import { MATURITY_6M, MATURITY_12M } from "@/constants";
+import { useUserITByMaturity } from "@/hooks/useTokenMinting";
 import { SwapHoriz } from "@mui/icons-material";
 
 interface UserInsuranceToken {
   protocol: string;
   title: string;
+  maturity: string;
+  maturityIndex: number;
   balance: number;
   isNew?: boolean;
   iconPath: string;
@@ -64,26 +66,22 @@ export default function MyInsuranceTokens() {
   const [isLoading, setIsLoading] = useState(true);
   const [totalValueCovered, setTotalValueCovered] = useState<number>(0);
 
-  // Create a mapping of all insurance token addresses
-  const insuranceTokenAddresses = insuranceListings.map((listing) => {
-    const protocolKey = listing.title
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "");
-
-    return {
-      listing,
-      tokenAddress:
-        PROTOCOL_TOKENS[protocolKey as keyof typeof PROTOCOL_TOKENS]
-          ?.insuranceToken,
-    };
-  });
-
-  // Fetch balances for all tokens
-  const balances = insuranceTokenAddresses.map(({ tokenAddress }) =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useERC20Balance(tokenAddress, address)
+  // Get unique protocol names (without maturity suffix)
+  const uniqueProtocols = Array.from(
+    new Set(
+      insuranceListings.map((listing) =>
+        listing.title.replace(/\s*\((?:6M|12M)\)\s*$/, "")
+      )
+    )
   );
+
+  // Fetch balances for all protocols and maturities
+  const balanceQueries = uniqueProtocols.flatMap((protocol) => [
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    { protocol, maturity: "6M", maturityIndex: MATURITY_6M, data: useUserITByMaturity(address, protocol, MATURITY_6M) },
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    { protocol, maturity: "12M", maturityIndex: MATURITY_12M, data: useUserITByMaturity(address, protocol, MATURITY_12M) },
+  ]);
 
   // Process token balances and calculate total whenever balances update
   useEffect(() => {
@@ -95,18 +93,24 @@ export default function MyInsuranceTokens() {
     const tokens: UserInsuranceToken[] = [];
     let total = 0;
 
-    insuranceTokenAddresses.forEach(({ listing }, index) => {
-      const balanceResult = balances[index];
-      if (balanceResult.data !== undefined && balanceResult.data !== null) {
-        const balance = Number(formatUnits(balanceResult.data as bigint, 18));
+    balanceQueries.forEach(({ protocol, maturity, maturityIndex, data }) => {
+      if (data.data !== undefined && data.data !== null) {
+        const balance = Number(formatUnits(data.data as bigint, 18));
         if (balance > 0) {
+          // Find the listing to get protocol type and isNew status
+          const listing = insuranceListings.find(
+            (l) => l.title === `${protocol} (${maturity})`
+          );
+          
           tokens.push({
-            protocol: listing.title,
-            title: listing.title,
+            protocol,
+            title: `${protocol} (${maturity})`,
+            maturity,
+            maturityIndex,
             balance,
-            isNew: listing.isNew,
-            iconPath: getProtocolLogo(listing.title),
-            protocolType: listing.protocol,
+            isNew: listing?.isNew || false,
+            iconPath: getProtocolLogo(protocol),
+            protocolType: listing?.protocol || "other",
           });
           total += balance;
         }
@@ -117,15 +121,16 @@ export default function MyInsuranceTokens() {
     setTotalValueCovered(total);
     setIsLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address, balances]);
+  }, [address, ...balanceQueries.map(q => q.data.data)]);
 
-  const handleTradeToken = (protocol: string) => {
+  const handleTradeToken = (protocol: string, maturity: string) => {
     const protocolName = protocol
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9-]/g, "");
-    // Navigate directly to the protocol's trading page
-    window.location.href = `/insurance-market/${protocolName}`;
+    const maturitySuffix = maturity === "12M" ? "-12m" : "-6m";
+    // Navigate to the maturity-specific trading page
+    window.location.href = `/insurance-market/${protocolName}${maturitySuffix}`;
   };
 
   if (!address) {
@@ -310,7 +315,7 @@ export default function MyInsuranceTokens() {
                   <Button
                     variant="outlined"
                     startIcon={<SwapHoriz />}
-                    onClick={() => handleTradeToken(token.title)}
+                    onClick={() => handleTradeToken(token.protocol, token.maturity)}
                     sx={{
                       borderColor: "#f97316",
                       color: "#f97316",
