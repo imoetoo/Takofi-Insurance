@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./BokkyPooBahsDateTimeLibrary.sol";
 
 // ========== MATURITY BUCKET SUPPORT ==========
 // Constants for maturity indices
@@ -56,6 +57,9 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
         uint256 expiryTime;
         string label;
         bool isActive;
+        bool isSettled;
+        bool breachOccurred;
+        uint256 totalITPayout;
     }
     
     // Supported stablecoins
@@ -108,6 +112,10 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
     event MaturityInitialized(bytes32 indexed protocolId, uint256 maturityIndex, uint256 expiryTime, string label);
     event MaturityRolled(bytes32 indexed protocolId, uint256 maturityIndex, uint256 newExpiryTime);
     event MaturitiesRolled(bytes32 indexed protocolId, uint256 newExpiry6M, uint256 newExpiry12M);
+    event MaturitySettled(bytes32 indexed protocolId, uint256 maturityIndex, bool breachOccurred, uint256 totalITPayout);
+    event PrincipalRedeemed(address indexed user, bytes32 indexed protocolId, uint256 maturityIndex, uint256 ptAmount, uint256 payoutAmount);
+    event InsuranceClaimed(address indexed user, bytes32 indexed protocolId, uint256 maturityIndex, uint256 itAmount, uint256 payoutAmount);
+    event ExpiredITBurned(address indexed user, bytes32 indexed protocolId, uint256 maturityIndex, uint256 itAmount);
     
     constructor(address _usdt, address _usdc) Ownable(msg.sender) {
         USDT = IERC20(_usdt);
@@ -141,7 +149,7 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
         uint256 mintingFee
     ) internal {
         bytes32 protocolId = keccak256(abi.encodePacked(protocolName));
-        require(!protocols[protocolId].active, "Protocol already exists");
+        require(!protocols[protocolId].active, "");
         
         // Deploy new token contracts
         string memory insuranceName = string(abi.encodePacked(protocolName, " Insurance Token"));
@@ -183,41 +191,58 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
     function _initializeMaturities(bytes32 protocolId) internal {
         uint256 currentTime = block.timestamp;
         
-        // Calculate next June 30 and December 31
-        uint256 nextJune30 = _getNextJune30(currentTime);
-        uint256 nextDec31 = _getNextDec31(currentTime);
+        // Get current year and determine next June 30 and Dec 31
+        uint256 currentYear = BokkyPooBahsDateTimeLibrary.getYear(currentTime);
+
         
-        // 6M bucket is always the nearer date, 12M is the farther date
+        // Calculate June 30 of current year
+        uint256 june30 = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(currentYear, 6, 30, 23, 59, 59);
+        
+        // Calculate Dec 31 of current year
+        uint256 dec31 = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(currentYear, 12, 31, 23, 59, 59);
+        
+        // If we're past June 30, move it to next year
+        if (currentTime >= june30) {
+            june30 = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(currentYear + 1, 6, 30, 23, 59, 59);
+        }
+        
+        // If we're past Dec 31, move it to next year
+        if (currentTime >= dec31) {
+            dec31 = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(currentYear + 1, 12, 31, 23, 59, 59);
+        }
+        
+        // 6M is the nearer date, 12M is the farther date
         uint256 maturity6M;
         uint256 maturity12M;
         
-        if (nextJune30 < nextDec31) {
-            // June 30 is sooner
-            maturity6M = nextJune30;
-            maturity12M = nextDec31;
+        if (june30 < dec31) {
+            maturity6M = june30;
+            maturity12M = dec31;
         } else {
-            // Dec 31 is sooner
-            maturity6M = nextDec31;
-            maturity12M = nextJune30;
+            maturity6M = dec31;
+            maturity12M = june30;
         }
-        
-        string memory label6M = _formatDateLabel(maturity6M);
-        string memory label12M = _formatDateLabel(maturity12M);
         
         maturities[protocolId][MATURITY_6M] = MaturityBucket({
             expiryTime: maturity6M,
-            label: label6M,
-            isActive: true
+            label: "Maturity_6M",
+            isActive: true,
+            isSettled: false,
+            breachOccurred: false,
+            totalITPayout: 0
         });
         
         maturities[protocolId][MATURITY_12M] = MaturityBucket({
             expiryTime: maturity12M,
-            label: label12M,
-            isActive: true
+            label: "Maturity_12M",
+            isActive: true,
+            isSettled: false,
+            breachOccurred: false,
+            totalITPayout: 0
         });
         
-        emit MaturityInitialized(protocolId, MATURITY_6M, maturity6M, label6M);
-        emit MaturityInitialized(protocolId, MATURITY_12M, maturity12M, label12M);
+        emit MaturityInitialized(protocolId, MATURITY_6M, maturity6M, "Maturity_6M");
+        emit MaturityInitialized(protocolId, MATURITY_12M, maturity12M, "Maturity_12M");
     }
 
     /**
@@ -231,148 +256,54 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
         // Check if 6M bucket has expired
         require(
             currentTime >= maturities[protocolId][MATURITY_6M].expiryTime,
-            "6M maturity has not expired yet"
-        );
+"");
         
-        uint256 nextJune30 = _getNextJune30(currentTime);
-        uint256 nextDec31 = _getNextDec31(currentTime);
+        // Get current year for calculating next maturities
+        uint256 currentYear = BokkyPooBahsDateTimeLibrary.getYear(currentTime);
         
-        // Ensure 6M is sooner than 12M
-        if (nextJune30 > nextDec31) {
-            uint256 temp = nextJune30;
-            nextJune30 = nextDec31;
-            nextDec31 = temp + 365 days;
+        // Calculate next June 30 and Dec 31
+        uint256 nextJune30 = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(currentYear, 6, 30, 23, 59, 59);
+        uint256 nextDec31 = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(currentYear, 12, 31, 23, 59, 59);
+        
+        // If we're past these dates, move to next year
+        if (currentTime >= nextJune30) {
+            nextJune30 = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(currentYear + 1, 6, 30, 23, 59, 59);
+        }
+        if (currentTime >= nextDec31) {
+            nextDec31 = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(currentYear + 1, 12, 31, 23, 59, 59);
         }
         
-        string memory newLabel6M = _formatDateLabel(nextJune30);
-        string memory newLabel12M = _formatDateLabel(nextDec31);
+        // 6M is the nearer date, 12M is the farther date
+        uint256 maturity6M;
+        uint256 maturity12M;
+        
+        if (nextJune30 < nextDec31) {
+            maturity6M = nextJune30;
+            maturity12M = nextDec31;
+        } else {
+            maturity6M = nextDec31;
+            maturity12M = nextJune30;
+        }
         
         maturities[protocolId][MATURITY_6M] = MaturityBucket({
-            expiryTime: nextJune30,
-            label: newLabel6M,
-            isActive: true
+            expiryTime: maturity6M,
+            label: "Maturity_6M_Rolled",
+            isActive: true,
+            isSettled: false,
+            breachOccurred: false,
+            totalITPayout: 0
         });
         
         maturities[protocolId][MATURITY_12M] = MaturityBucket({
-            expiryTime: nextDec31,
-            label: newLabel12M,
-            isActive: true
+            expiryTime: maturity12M,
+            label: "Maturity_12M_Rolled",
+            isActive: true,
+            isSettled: false,
+            breachOccurred: false,
+            totalITPayout: 0
         });
         
-        emit MaturitiesRolled(protocolId, nextJune30, nextDec31);
-    }
-
-    /**
-     * @dev Get next June 30 from given timestamp
-     */
-    function _getNextJune30(uint256 timestamp) internal pure returns (uint256) {
-        uint256 year = _getYear(timestamp);
-        uint256 june30 = _mktime(year, 6, 30);
-        
-        if (timestamp > june30) {
-            // If past June 30, next one is next year
-            june30 = _mktime(year + 1, 6, 30);
-        }
-        
-        return june30;
-    }
-
-    /**
-     * @dev Get next December 31 from given timestamp
-     */
-    function _getNextDec31(uint256 timestamp) internal pure returns (uint256) {
-        uint256 year = _getYear(timestamp);
-        uint256 dec31 = _mktime(year, 12, 31);
-        
-        if (timestamp > dec31) {
-            // If past December 31, next one is next year
-            dec31 = _mktime(year + 1, 12, 31);
-        }
-        
-        return dec31;
-    }
-
-    /**
-     * @dev Extract year from unix timestamp (simplified, assumes Gregorian calendar)
-     */
-    function _getYear(uint256 timestamp) internal pure returns (uint256) {
-        uint256 secondsPerYear = 31536000; // 365 days
-        uint256 year = 1970 + timestamp / secondsPerYear;
-        return year;
-    }
-
-    /**
-     * @dev Convert date components to unix timestamp
-     * Simplified version - assumes UTC timezone
-     */
-    function _mktime(uint256 year, uint256 month, uint256 day) internal pure returns (uint256) {
-        // Days in month
-        uint256[12] memory daysInMonth = [uint256(31), 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-        
-        // Adjust for leap year (Feb only)
-        if (month > 2 && ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0)) {
-            daysInMonth[1] = 29;
-        }
-        
-        require(month >= 1 && month <= 12, "Invalid month");
-        require(day >= 1 && day <= daysInMonth[month - 1], "Invalid day");
-        
-        // Calculate days since epoch (1970-01-01)
-        uint256 daysSinceEpoch = 0;
-        
-        // Add days for complete years
-        for (uint256 y = 1970; y < year; y++) {
-            if ((y % 4 == 0 && y % 100 != 0) || y % 400 == 0) {
-                daysSinceEpoch += 366;
-            } else {
-                daysSinceEpoch += 365;
-            }
-        }
-        
-        // Add days for complete months in current year
-        for (uint256 m = 1; m < month; m++) {
-            daysSinceEpoch += daysInMonth[m - 1];
-        }
-        
-        // Add remaining days
-        daysSinceEpoch += day;
-        
-        // Convert to unix timestamp (seconds since epoch, at end of day 23:59:59)
-        return (daysSinceEpoch - 1) * 86400 + 86399; // 86400 = seconds per day, +86399 for end of day
-    }
-
-    /**
-     * @dev Format date label from unix timestamp (e.g., "Jun 30, 2026")
-     */
-    function _formatDateLabel(uint256 timestamp) internal pure returns (string memory) {
-        // Simplified - just return the timestamp as string
-        // In production, implement proper date formatting
-
-        uint256 year = _getYear(timestamp);
-        uint256 month = ((timestamp / 2592000) % 12) + 1; // Simplified month calc
-        
-        // Return "Mon DD, YYYY" format
-        return string(abi.encodePacked("Maturity_", _uint2str(month), "_", _uint2str(year)));
-    }
-
-    function _uint2str(uint256 _i) internal pure returns (string memory) {
-        if (_i == 0) return "0";
-        uint256 j = _i;
-        uint256 len;
-        while (j != 0) {
-            len++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(len);
-        uint256 k = len;
-        while (_i != 0) {
-            k = k - 1;
-            uint8 temp = (48 + uint8(_i - (_i / 10) * 10));
-            bytes1 b1 = bytes1(temp);
-            bstr[k] = b1;
-            _i /= 10;
-        }
-        return string(bstr);
+        emit MaturitiesRolled(protocolId, maturity6M, maturity12M);
     }
 
     /**
@@ -428,14 +359,14 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
         address stablecoin,
         uint256 amount
     ) external nonReentrant {
-        require(protocols[protocolId].active, "Protocol not active");
-        require(stablecoin == address(USDT) || stablecoin == address(USDC), "Unsupported stablecoin");
-        require(amount > 0, "Amount must be greater than 0");
-        require(maturityIndex == MATURITY_6M || maturityIndex == MATURITY_12M, "Invalid maturity index");
+        require(protocols[protocolId].active, "");
+        require(stablecoin == address(USDT) || stablecoin == address(USDC), "");
+        require(amount > 0, "");
+        require(maturityIndex == MATURITY_6M || maturityIndex == MATURITY_12M, "");
         
         MaturityBucket storage bucket = maturities[protocolId][maturityIndex];
-        require(bucket.isActive, "Maturity inactive");
-        require(block.timestamp < bucket.expiryTime, "Maturity expired");
+        require(bucket.isActive, "");
+        require(block.timestamp < bucket.expiryTime, "");
         
         ProtocolInfo storage protocol = protocols[protocolId];
         
@@ -482,9 +413,9 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
         uint256 principalAmount,
         address preferredStablecoin
     ) external nonReentrant {
-        require(protocols[protocolId].active, "Protocol not active");
-        require(insuranceAmount == principalAmount, "Must burn equal amounts");
-        require(preferredStablecoin == address(USDT) || preferredStablecoin == address(USDC), "Unsupported stablecoin");
+        require(protocols[protocolId].active, "");
+        require(insuranceAmount == principalAmount, "");
+        require(preferredStablecoin == address(USDT) || preferredStablecoin == address(USDC), "");
         
         ProtocolInfo storage protocol = protocols[protocolId];
         
@@ -598,11 +529,11 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
      * @return annualFeePercentage The annual fee in basis points (389 = 3.89%)
      */
     function calculateAnnualFee(bytes32 protocolId, uint256 coverageAmount, uint256 maturityIndex) public view returns (uint256) {
-        require(address(dexContract) != address(0), "DEX contract not set");
-        require(coverageAmount > 0, "Coverage amount must be greater than 0");
+        require(address(dexContract) != address(0), "");
+        require(coverageAmount > 0, "");
         
         ProtocolInfo memory protocol = protocols[protocolId];
-        require(protocol.active, "Protocol not active");
+        require(protocol.active, "");
         
         // Get the cheapest sell price from DEX for BOTH USDC and USDT markets
         // base = Insurance Token, quote = USDC or USDT
@@ -790,7 +721,7 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
         uint256 itAmount
     ) external onlyOwner nonReentrant {
         ProtocolInfo storage protocol = protocols[protocolId];
-        require(protocol.active, "Protocol not active");
+        require(protocol.active, "");
         
         // Burn IT from claimant
         protocol.insuranceToken.burn(claimant, itAmount);
@@ -804,7 +735,7 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
             payoutToken = USDT;
         }
         
-        require(payoutToken.balanceOf(address(this)) >= payoutAmount, "Insufficient funds for payout");
+        require(payoutToken.balanceOf(address(this)) >= payoutAmount, "");
         payoutToken.transfer(claimant, payoutAmount);
         
         // Track IT burnt from payouts
@@ -814,13 +745,192 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
         emit PayoutProcessed(protocolId, itAmount, payoutAmount);
     }
     
+    // ========== SETTLEMENT & REDEMPTION FUNCTIONS ==========
+    
+    /**
+     * @dev Settle a maturity after it expires
+     * @param protocolId The protocol identifier
+     * @param maturityIndex The maturity index (0 = 6M, 1 = 12M)
+     * @param breachOccurred Whether a breach/hack occurred
+     * @param totalITPayout Total IT payout amount (in USDC/USDT decimals = 6)
+     * Only callable by owner (oracle/guardian in production)
+     */
+    function settleMaturity(
+        bytes32 protocolId,
+        uint256 maturityIndex,
+        bool breachOccurred,
+        uint256 totalITPayout
+    ) external onlyOwner {
+        MaturityBucket storage maturity = maturities[protocolId][maturityIndex];
+        require(maturity.isActive, "");
+        require(!maturity.isSettled, "");
+        require(block.timestamp >= maturity.expiryTime, "");
+        
+        maturity.isSettled = true;
+        maturity.breachOccurred = breachOccurred;
+        maturity.totalITPayout = totalITPayout;
+        
+        if (breachOccurred && totalITPayout > 0) {
+            // Update protocol total deposited
+            ProtocolInfo storage protocol = protocols[protocolId];
+            protocol.totalDeposited -= totalITPayout;
+            protocol.totalITBurntFromPayouts += totalITPayout;
+        }
+        
+        emit MaturitySettled(protocolId, maturityIndex, breachOccurred, totalITPayout);
+    }
+    
+    /**
+     * @dev Redeem principal tokens after maturity settlement
+     * @param protocolId The protocol identifier
+     * @param maturityIndex The maturity index
+     * @param ptAmount Amount of PT to redeem (18 decimals)
+     */
+    function redeemPrincipalTokens(
+        bytes32 protocolId,
+        uint256 maturityIndex,
+        uint256 ptAmount
+    ) external nonReentrant {
+        require(ptAmount > 0, "");
+        
+        MaturityBucket storage maturity = maturities[protocolId][maturityIndex];
+        require(maturity.isActive, "");
+        
+        // Auto-settle if expired but not yet settled
+        if (!maturity.isSettled && isMaturityExpired(protocolId, maturityIndex)) {
+            // Only auto-settle if no breach has occurred
+            // If breachOccurred is already true, don't override it
+            if (!maturity.breachOccurred) {
+                maturity.isSettled = true;
+                // breachOccurred remains false (default)
+                maturity.totalITPayout = 0;
+                emit MaturitySettled(protocolId, maturityIndex, false, 0);
+            } else {
+                // Breach already occurred, cannot auto-settle
+                revert("breach_requires_manual_settlement");
+            }
+        }
+        
+        require(maturity.isSettled, "!settled");
+        // PT can be redeemed even if breach occurred, but at impaired value
+        
+        ProtocolInfo storage protocol = protocols[protocolId];
+        
+        // Check user balance
+        uint256 userPT = userPTByMaturity[msg.sender][protocolId][maturityIndex];
+        require(userPT >= ptAmount, "");
+        
+        // Calculate redemption value
+        uint256 totalPT = totalPTByMaturity[protocolId][maturityIndex];
+        require(totalPT > 0, "");
+        
+        // Redemption value per PT = (totalDeposited - totalITPayout) / totalPT
+        // If breach occurred, totalITPayout > 0, so PT value is impaired
+        // If no breach, totalITPayout = 0, so PT redeems at full value
+        uint256 totalValueForPT = protocol.totalDeposited - maturity.totalITPayout;
+        uint256 payoutAmount = (totalValueForPT * ptAmount) / totalPT;
+        
+        // Burn PT
+        protocol.principalToken.burn(msg.sender, ptAmount);
+        userPTByMaturity[msg.sender][protocolId][maturityIndex] -= ptAmount;
+        totalPTByMaturity[protocolId][maturityIndex] -= ptAmount;
+        
+        // Reduce total deposited by payout amount
+        protocol.totalDeposited -= payoutAmount;
+        
+        // Transfer stablecoin
+        IERC20 payoutToken = USDC;
+        if (payoutToken.balanceOf(address(this)) < payoutAmount) {
+            payoutToken = USDT;
+        }
+        require(payoutToken.balanceOf(address(this)) >= payoutAmount, "");
+        payoutToken.transfer(msg.sender, payoutAmount);
+        
+        emit PrincipalRedeemed(msg.sender, protocolId, maturityIndex, ptAmount, payoutAmount);
+    }
+    
+    /**
+     * @dev Claim insurance payout after breach settlement
+     * @param protocolId The protocol identifier
+     * @param maturityIndex The maturity index
+     * @param itAmount Amount of IT to claim with (18 decimals)
+     */
+    function claimInsurancePayout(
+        bytes32 protocolId,
+        uint256 maturityIndex,
+        uint256 itAmount
+    ) external nonReentrant {
+        require(itAmount > 0, "");
+        
+        MaturityBucket storage maturity = maturities[protocolId][maturityIndex];
+        require(maturity.isActive, "");
+        require(maturity.isSettled, "");
+        require(maturity.breachOccurred, "");
+        
+        ProtocolInfo storage protocol = protocols[protocolId];
+        
+        // Check user balance
+        uint256 userIT = userITByMaturity[msg.sender][protocolId][maturityIndex];
+        require(userIT >= itAmount, "");
+        
+        // Calculate payout value
+        uint256 totalIT = totalITByMaturity[protocolId][maturityIndex];
+        require(totalIT > 0, "");
+        
+        // Payout value = totalITPayout * itAmount / totalIT
+        uint256 payoutAmount = (maturity.totalITPayout * itAmount) / totalIT;
+        
+        // Burn IT
+        protocol.insuranceToken.burn(msg.sender, itAmount);
+        userITByMaturity[msg.sender][protocolId][maturityIndex] -= itAmount;
+        totalITByMaturity[protocolId][maturityIndex] -= itAmount;
+        
+        // Transfer stablecoin
+        IERC20 payoutToken = USDC;
+        if (payoutToken.balanceOf(address(this)) < payoutAmount) {
+            payoutToken = USDT;
+        }
+        require(payoutToken.balanceOf(address(this)) >= payoutAmount, "");
+        payoutToken.transfer(msg.sender, payoutAmount);
+        
+        emit InsuranceClaimed(msg.sender, protocolId, maturityIndex, itAmount, payoutAmount);
+    }
+    
+    /**
+     * @dev Burn expired insurance tokens after maturity with no breach
+     * @param protocolId The protocol identifier
+     * @param maturityIndex The maturity index
+     */
+    function burnExpiredInsuranceTokens(
+        bytes32 protocolId,
+        uint256 maturityIndex
+    ) external nonReentrant {
+        MaturityBucket storage maturity = maturities[protocolId][maturityIndex];
+        require(maturity.isActive, "");
+        require(maturity.isSettled, "");
+        require(!maturity.breachOccurred, "");
+        
+        ProtocolInfo storage protocol = protocols[protocolId];
+        
+        // Check user balance
+        uint256 userIT = userITByMaturity[msg.sender][protocolId][maturityIndex];
+        require(userIT > 0, "");
+        
+        // Burn IT (worthless after maturity with no breach)
+        protocol.insuranceToken.burn(msg.sender, userIT);
+        userITByMaturity[msg.sender][protocolId][maturityIndex] = 0;
+        totalITByMaturity[protocolId][maturityIndex] -= userIT;
+        
+        emit ExpiredITBurned(msg.sender, protocolId, maturityIndex, userIT);
+    }
+    
     // ========== ADMIN FUNCTIONS ==========
     
     /**
      * @dev Set the DEX contract address for price oracle
      */
     function setDexContract(address _dexContract) external onlyOwner {
-        require(_dexContract != address(0), "Invalid DEX address");
+        require(_dexContract != address(0), "");
         address oldDex = address(dexContract);
         dexContract = IDex(_dexContract);
         emit DexContractUpdated(oldDex, _dexContract);

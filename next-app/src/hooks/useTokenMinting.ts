@@ -211,6 +211,27 @@ export function useUserITByMaturity(
   }) as { data: bigint | undefined; isLoading: boolean; error: Error | null };
 }
 
+// Hook for reading user's PT balance for a specific maturity
+export function useUserPTByMaturity(
+  userAddress: string | undefined,
+  protocolName: string,
+  maturityIndex: number
+) {
+  const protocolId = keccak256(stringToBytes(protocolName));
+
+  return useReadContract({
+    address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
+    abi: TOKEN_MINTING_ABI,
+    functionName: "getUserPTByMaturity",
+    args: [userAddress as `0x${string}`, protocolId, BigInt(maturityIndex)],
+    query: {
+      enabled: !!userAddress,
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+    },
+  }) as { data: bigint | undefined; isLoading: boolean; error: Error | null };
+}
+
 // Hook for reading insurance market metrics (Available Capacity, TVL, Annual Fee, IT Price)
 export function useInsuranceMarketMetrics(protocolName: string) {
   const protocolId = keccak256(stringToBytes(protocolName));
@@ -249,5 +270,108 @@ export function useInsuranceMarketMetricsByMaturity(
     data: InsuranceMarketMetrics | undefined;
     isLoading: boolean;
     error: Error | null;
+  };
+}
+// Hook to read maturity details
+export function useMaturitySettlement(
+  protocolName: string,
+  maturityIndex: number
+) {
+  const protocolId = keccak256(stringToBytes(protocolName));
+
+  return useReadContract({
+    address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
+    abi: TOKEN_MINTING_ABI,
+    functionName: "getMaturity",
+    args: [protocolId, BigInt(maturityIndex)],
+    query: {
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+    },
+  }) as {
+    data: {
+      expiryTime: bigint;
+      label: string;
+      isActive: boolean;
+      isSettled: boolean;
+      breachOccurred: boolean;
+      totalITPayout: bigint;
+    } | undefined;
+    isLoading: boolean;
+    error: Error | null;
+  };
+}
+
+// Hook to check if maturity has expired (using blockchain time)
+export function useIsMaturityExpired(
+  protocolName: string,
+  maturityIndex: number
+) {
+  const protocolId = keccak256(stringToBytes(protocolName));
+
+  return useReadContract({
+    address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
+    abi: TOKEN_MINTING_ABI,
+    functionName: "isMaturityExpired",
+    args: [protocolId, BigInt(maturityIndex)],
+  }) as {
+    data: boolean | undefined;
+    isLoading: boolean;
+    error: Error | null;
+  };
+}
+
+
+// Hook to redeem Principal Tokens
+export function useRedeemPrincipalTokens() {
+  const { writeContractAsync, isPending, error, data: hash } = useWriteContract();
+
+  const redeemPT = async (
+    protocolName: string,
+    maturityIndex: number,
+    ptAmount: bigint
+  ) => {
+    const protocolId = keccak256(stringToBytes(protocolName));
+
+    const hash = await writeContractAsync({
+      address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
+      abi: TOKEN_MINTING_ABI,
+      functionName: "redeemPrincipalTokens",
+      args: [protocolId, BigInt(maturityIndex), ptAmount],
+    });
+
+    return hash;
+  };
+
+  return {
+    redeemPT,
+    isPending,
+    error,
+    hash,
+  };
+}
+
+// Hook to burn expired Insurance Tokens (no payout)
+export function useBurnExpiredIT() {
+  const { writeContractAsync, isPending, error, data: hash } = useWriteContract();
+
+  const burnIT = async (protocolName: string, maturityIndex: number) => {
+    const protocolId = keccak256(stringToBytes(protocolName));
+
+    const hash = await writeContractAsync({
+      address: TOKEN_MINTING_CONTRACT_ADDRESS as `0x${string}`,
+      abi: TOKEN_MINTING_ABI,
+      functionName: "burnExpiredInsuranceTokens",
+      args: [protocolId, BigInt(maturityIndex)],
+    });
+
+    return hash;
+  };
+
+  return {
+    burnIT,
+    isPending,
+    error,
+    hash,
   };
 }

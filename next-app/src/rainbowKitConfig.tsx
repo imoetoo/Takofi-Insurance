@@ -11,14 +11,6 @@ import {
   sepolia,
 } from "wagmi/chains";
 
-// Only log once in development
-if (process.env.NODE_ENV === "development") {
-  console.log(
-    "WalletConnect Project ID:",
-    process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID
-  );
-}
-
 // Create config outside component to prevent re-initialization
 let config: ReturnType<typeof getDefaultConfig> | null = null;
 

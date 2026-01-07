@@ -7,7 +7,7 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200, // Lower runs = smaller contract size, higher deployment cost
+        runs: 1, // lower runs implies higher deployment cost but smaller contract size (max contract size is 24576)
       },
     },
   },

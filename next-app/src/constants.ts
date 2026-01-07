@@ -88,9 +88,19 @@ export const TOKEN_MINTING_ABI = [
     ],
     name: "getMaturity",
     outputs: [
-      { internalType: "uint256", name: "expiryTime", type: "uint256" },
-      { internalType: "string", name: "label", type: "string" },
-      { internalType: "bool", name: "isActive", type: "bool" },
+      {
+        components: [
+          { internalType: "uint256", name: "expiryTime", type: "uint256" },
+          { internalType: "string", name: "label", type: "string" },
+          { internalType: "bool", name: "isActive", type: "bool" },
+          { internalType: "bool", name: "isSettled", type: "bool" },
+          { internalType: "bool", name: "breachOccurred", type: "bool" },
+          { internalType: "uint256", name: "totalITPayout", type: "uint256" },
+        ],
+        internalType: "struct ProtocolInsurance.MaturityBucket",
+        name: "",
+        type: "tuple",
+      },
     ],
     stateMutability: "view",
     type: "function",
@@ -264,6 +274,50 @@ export const TOKEN_MINTING_ABI = [
       { internalType: "uint256", name: "itPrice", type: "uint256" },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "protocolId", type: "bytes32" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
+      { internalType: "uint256", name: "ptAmount", type: "uint256" },
+    ],
+    name: "redeemPrincipalTokens",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "protocolId", type: "bytes32" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
+    ],
+    name: "burnExpiredInsuranceTokens",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "protocolId", type: "bytes32" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
+      { internalType: "uint256", name: "itAmount", type: "uint256" },
+    ],
+    name: "claimInsurancePayout",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "protocolId", type: "bytes32" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
+      { internalType: "bool", name: "breachOccurred", type: "bool" },
+      { internalType: "uint256", name: "totalITPayout", type: "uint256" },
+    ],
+    name: "settleMaturity",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
 ] as const;
