@@ -71,18 +71,18 @@ export default function RedeemPrincipalPage() {
   const sushiswap6MPT = useUserPTByMaturity(address, "SushiSwap", MATURITY_6M);
   const sushiswap6MSettlement = useMaturitySettlement("SushiSwap", MATURITY_6M);
   const sushiswap6MExpired = useIsMaturityExpired("SushiSwap", MATURITY_6M);
-  const sushiswap12MPT = useUserPTByMaturity(address, "SushiSwap", MATURITY_12M);
+   const sushiswap12MPT = useUserPTByMaturity(address, "SushiSwap", MATURITY_12M);
   const sushiswap12MSettlement = useMaturitySettlement("SushiSwap", MATURITY_12M);
   const sushiswap12MExpired = useIsMaturityExpired("SushiSwap", MATURITY_12M);
-  
+
   // Curve Finance
   const curve6MPT = useUserPTByMaturity(address, "Curve Finance", MATURITY_6M);
   const curve6MSettlement = useMaturitySettlement("Curve Finance", MATURITY_6M);
   const curve6MExpired = useIsMaturityExpired("Curve Finance", MATURITY_6M);
-  const curve12MPT = useUserPTByMaturity(address, "Curve Finance", MATURITY_12M);
+    const curve12MPT = useUserPTByMaturity(address, "Curve Finance", MATURITY_12M);
   const curve12MSettlement = useMaturitySettlement("Curve Finance", MATURITY_12M);
   const curve12MExpired = useIsMaturityExpired("Curve Finance", MATURITY_12M);
-  
+
   // Aave
   const aave6MPT = useUserPTByMaturity(address, "Aave", MATURITY_6M);
   const aave6MSettlement = useMaturitySettlement("Aave", MATURITY_6M);
@@ -90,7 +90,7 @@ export default function RedeemPrincipalPage() {
   const aave12MPT = useUserPTByMaturity(address, "Aave", MATURITY_12M);
   const aave12MSettlement = useMaturitySettlement("Aave", MATURITY_12M);
   const aave12MExpired = useIsMaturityExpired("Aave", MATURITY_12M);
-  
+
   // Uniswap V3
   const uniswap6MPT = useUserPTByMaturity(address, "Uniswap V3", MATURITY_6M);
   const uniswap6MSettlement = useMaturitySettlement("Uniswap V3", MATURITY_6M);
@@ -98,7 +98,7 @@ export default function RedeemPrincipalPage() {
   const uniswap12MPT = useUserPTByMaturity(address, "Uniswap V3", MATURITY_12M);
   const uniswap12MSettlement = useMaturitySettlement("Uniswap V3", MATURITY_12M);
   const uniswap12MExpired = useIsMaturityExpired("Uniswap V3", MATURITY_12M);
-  
+
   // Compound
   const compound6MPT = useUserPTByMaturity(address, "Compound", MATURITY_6M);
   const compound6MSettlement = useMaturitySettlement("Compound", MATURITY_6M);
@@ -106,7 +106,7 @@ export default function RedeemPrincipalPage() {
   const compound12MPT = useUserPTByMaturity(address, "Compound", MATURITY_12M);
   const compound12MSettlement = useMaturitySettlement("Compound", MATURITY_12M);
   const compound12MExpired = useIsMaturityExpired("Compound", MATURITY_12M);
-  
+
   // PancakeSwap
   const pancakeswap6MPT = useUserPTByMaturity(address, "PancakeSwap", MATURITY_6M);
   const pancakeswap6MSettlement = useMaturitySettlement("PancakeSwap", MATURITY_6M);
@@ -152,34 +152,34 @@ export default function RedeemPrincipalPage() {
     const tokens: RedeemableToken[] = [];
 
     tokenData.forEach(({ protocol, maturity, maturityIndex, ptBalance, settlement, isExpired }) => {
-      if (
-        ptBalance.data &&
-        ptBalance.data > BigInt(0) &&
-        settlement.data &&
-        isExpired.data !== undefined
-      ) {
+        if (
+          ptBalance.data &&
+          ptBalance.data > BigInt(0) &&
+          settlement.data &&
+          isExpired.data !== undefined
+        ) {
         const { expiryTime, isSettled, breachOccurred, totalITPayout } = settlement.data;
-        
-        // Show tokens that are past maturity date (using blockchain time):
-        // 1. Already settled (regardless of breach) - can redeem at calculated value
-        // 2. Expired + no breach - will auto-settle at 1:1 on redemption
-        // Hide: Expired + breach + not settled - needs manual settlement first
-        const canRedeem = isSettled || (isExpired.data && !breachOccurred);
-        
-        if (canRedeem) {
-          tokens.push({
-            protocol,
-            maturity,
-            maturityIndex,
-            ptBalance: ptBalance.data,
-            isSettled,
-            breachOccurred,
-            expiryTime,
-            totalITPayout,
-            iconPath: getProtocolLogo(protocol),
-          });
+
+          // Show tokens that are past maturity date (using blockchain time):
+          // 1. Already settled (regardless of breach) - can redeem at calculated value
+          // 2. Expired + no breach - will auto-settle at 1:1 on redemption
+          // Hide: Expired + breach + not settled - needs manual settlement first
+          const canRedeem = isSettled || (isExpired.data && !breachOccurred);
+
+          if (canRedeem) {
+            tokens.push({
+              protocol,
+              maturity,
+              maturityIndex,
+              ptBalance: ptBalance.data,
+              isSettled,
+              breachOccurred,
+              expiryTime,
+              totalITPayout,
+              iconPath: getProtocolLogo(protocol),
+            });
+          }
         }
-      }
     });
 
     setRedeemableTokens(tokens);
@@ -254,7 +254,7 @@ export default function RedeemPrincipalPage() {
     // PT value per token = (Total Deposited - IT Payout) / Total PT
     // For simplicity, assuming 1:1 if no breach, or showing reduced value
     const ptBalanceInUSDT = Number(formatUnits(token.ptBalance, 18));
-    
+
     if (!token.breachOccurred || token.totalITPayout === BigInt(0)) {
       return ptBalanceInUSDT.toFixed(2);
     }

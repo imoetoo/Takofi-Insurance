@@ -290,12 +290,12 @@ export function useMaturitySettlement(
     },
   }) as {
     data: {
-      expiryTime: bigint;
-      label: string;
-      isActive: boolean;
-      isSettled: boolean;
-      breachOccurred: boolean;
-      totalITPayout: bigint;
+          expiryTime: bigint;
+          label: string;
+          isActive: boolean;
+          isSettled: boolean;
+          breachOccurred: boolean;
+          totalITPayout: bigint;
     } | undefined;
     isLoading: boolean;
     error: Error | null;
