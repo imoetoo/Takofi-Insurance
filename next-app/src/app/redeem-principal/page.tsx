@@ -71,7 +71,7 @@ export default function RedeemPrincipalPage() {
   const sushiswap6MPT = useUserPTByMaturity(address, "SushiSwap", MATURITY_6M);
   const sushiswap6MSettlement = useMaturitySettlement("SushiSwap", MATURITY_6M);
   const sushiswap6MExpired = useIsMaturityExpired("SushiSwap", MATURITY_6M);
-   const sushiswap12MPT = useUserPTByMaturity(address, "SushiSwap", MATURITY_12M);
+  const sushiswap12MPT = useUserPTByMaturity(address, "SushiSwap", MATURITY_12M);
   const sushiswap12MSettlement = useMaturitySettlement("SushiSwap", MATURITY_12M);
   const sushiswap12MExpired = useIsMaturityExpired("SushiSwap", MATURITY_12M);
 
@@ -79,7 +79,7 @@ export default function RedeemPrincipalPage() {
   const curve6MPT = useUserPTByMaturity(address, "Curve Finance", MATURITY_6M);
   const curve6MSettlement = useMaturitySettlement("Curve Finance", MATURITY_6M);
   const curve6MExpired = useIsMaturityExpired("Curve Finance", MATURITY_6M);
-    const curve12MPT = useUserPTByMaturity(address, "Curve Finance", MATURITY_12M);
+  const curve12MPT = useUserPTByMaturity(address, "Curve Finance", MATURITY_12M);
   const curve12MSettlement = useMaturitySettlement("Curve Finance", MATURITY_12M);
   const curve12MExpired = useIsMaturityExpired("Curve Finance", MATURITY_12M);
 

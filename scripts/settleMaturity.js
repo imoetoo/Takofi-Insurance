@@ -3,9 +3,9 @@
  * assuming no breach has occurred.
  */
 
-const hre = require("hardhat");
-const { ethers } = require("hardhat");
-const { loadDeploymentAddresses } = require("./utils/loadDeployments");
+import hre from "hardhat";
+import { ethers } from "hardhat";
+import { loadDeploymentAddresses } from "./utils/loadDeployments.js";
 
 async function main() {
   console.log("🔧 Settling SushiSwap maturities (6M and 12M)...\n");

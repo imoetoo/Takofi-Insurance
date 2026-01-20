@@ -1,4 +1,10 @@
 // SPDX-License-Identifier: MIT
+/**
+ * @title BokkyPooBahsDateTimeLibrary
+ * @notice [INTERNAL LIBRARY] Gas-efficient Solidity library for date and time manipulation - provides utilities to convert between
+ * Unix timestamps and calendar dates, calculate date components, and perform date arithmetic operations
+ * @dev Source: https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary | Code compiled into main contract
+ */
 pragma solidity ^0.8.0;
 
 // ----------------------------------------------------------------------------

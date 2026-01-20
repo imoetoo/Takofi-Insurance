@@ -1,4 +1,9 @@
 //SPDX-License-Identifier: MIT
+/**
+ * @title MockStablecoin
+ * @notice [TEST CONTRACT] Mock ERC20 stablecoin for testing - simulates USDT/USDC with 6 decimals,
+ * allows minting for development and testing purposes
+ */
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";

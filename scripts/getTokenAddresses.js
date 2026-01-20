@@ -1,5 +1,5 @@
-const { ethers } = require("hardhat");
-const { loadDeploymentAddresses } = require("./utils/loadDeployments");
+import { ethers } from "hardhat";
+import { loadDeploymentAddresses } from "./utils/loadDeployments.js";
 
 async function main() {
   try {

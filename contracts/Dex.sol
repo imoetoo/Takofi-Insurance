@@ -1,4 +1,9 @@
 // SPDX-License-Identifier: MIT
+/**
+ * @title Dex
+ * @notice [STANDALONE CONTRACT] Decentralized exchange with order book for insurance and principal tokens - supports limit orders,
+ * market orders, order cancellation, and provides price discovery for insurance pricing
+ */
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";

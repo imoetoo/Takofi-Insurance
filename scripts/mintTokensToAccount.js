@@ -1,5 +1,5 @@
-const hre = require("hardhat");
-const { loadDeploymentAddresses } = require("./utils/loadDeployments");
+import hre from "hardhat";
+import { loadDeploymentAddresses } from "./utils/loadDeployments.js";
 
 async function main() {
   // Load deployment addresses

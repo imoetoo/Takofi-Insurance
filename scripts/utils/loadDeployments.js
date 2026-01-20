@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
 
 /**
  * Load deployment addresses from Ignition deployment output
@@ -29,4 +29,4 @@ function loadDeploymentAddresses(chainId = 31337) {
   };
 }
 
-module.exports = { loadDeploymentAddresses };
+export { loadDeploymentAddresses };

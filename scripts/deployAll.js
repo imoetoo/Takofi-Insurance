@@ -1,6 +1,7 @@
-const fs = require("fs");
-const path = require("path");
-const { execSync } = require("child_process");
+import fs from "fs";
+import path from "path";
+import { execSync } from "child_process";
+import hre from "hardhat";
 
 async function main() {
   console.log("🚀 Starting complete deployment process...\n");
@@ -109,10 +110,10 @@ async function main() {
   // Step 5: Deploy TokenMinting contract using Hardhat Ignition
   // ============================================
   console.log(
-    "🛡️  Step 5: Deploying TokenMinting (ProtocolInsurance) contract..."
+    "🛡️  Step 5: Deploying TokenMinting (ProtocolInsurance) and helper contracts..."
   );
 
-  let tokenMintingAddress;
+  let tokenMintingAddress, maturityHelperAddress, settlementHelperAddress;
   try {
     execSync(
       "npx hardhat ignition deploy ignition/modules/TokenMinting.js --network localhost",
@@ -128,6 +129,10 @@ async function main() {
       );
       tokenMintingAddress =
         deployedAddresses["TokenMintingModule#ProtocolInsurance"];
+      maturityHelperAddress =
+        deployedAddresses["TokenMintingModule#MaturityHelper"];
+      settlementHelperAddress =
+        deployedAddresses["TokenMintingModule#SettlementHelper"];
 
       if (!tokenMintingAddress) {
         console.log(
@@ -137,7 +142,9 @@ async function main() {
         throw new Error("TokenMinting address not found in deployment");
       }
 
-      console.log(`   ✅ TokenMinting deployed at: ${tokenMintingAddress}\n`);
+      console.log(`   ✅ TokenMinting deployed at: ${tokenMintingAddress}`);
+      console.log(`   ✅ MaturityHelper deployed at: ${maturityHelperAddress}`);
+      console.log(`   ✅ SettlementHelper deployed at: ${settlementHelperAddress}\n`);
     } else {
       throw new Error("Deployment addresses file not found");
     }
@@ -152,7 +159,6 @@ async function main() {
   console.log("🔗 Step 6: Linking DEX contract to TokenMinting...");
 
   try {
-    const hre = require("hardhat");
     const ProtocolInsurance = await hre.ethers.getContractAt(
       "ProtocolInsurance",
       tokenMintingAddress
@@ -181,7 +187,6 @@ async function main() {
   );
 
   try {
-    const hre = require("hardhat");
     const ProtocolInsurance = await hre.ethers.getContractAt(
       "ProtocolInsurance",
       tokenMintingAddress
@@ -236,6 +241,8 @@ async function main() {
         MockUSDC: mockUSDC,
         Dex: dexAddress,
         TokenMinting: tokenMintingAddress,
+        MaturityHelper: maturityHelperAddress,
+        SettlementHelper: settlementHelperAddress,
       },
       protocols: protocolTokens,
     };
