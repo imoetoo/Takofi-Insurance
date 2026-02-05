@@ -29,7 +29,7 @@ async function main() {
   // ============================================
   console.log("⚙️  Step 2: Compiling contracts...");
   console.log(
-    "   Compiling: Dex.sol, TokenMinting.sol (ProtocolInsurance), MockStablecoin.sol"
+    "   Compiling: Dex.sol, TokenMinting.sol (ProtocolInsurance), MockStablecoin.sol",
   );
 
   try {
@@ -52,7 +52,7 @@ async function main() {
   try {
     execSync(
       "npx hardhat ignition deploy ignition/modules/MockStablecoins.js --network localhost",
-      { stdio: "inherit", cwd: process.cwd() }
+      { stdio: "inherit", cwd: process.cwd() },
     );
 
     // Read deployment addresses from Ignition output
@@ -61,7 +61,7 @@ async function main() {
 
     if (fs.existsSync(deploymentPath)) {
       const deployedAddresses = JSON.parse(
-        fs.readFileSync(deploymentPath, "utf8")
+        fs.readFileSync(deploymentPath, "utf8"),
       );
       mockUSDT = deployedAddresses["MockStablecoinsModule#MockUSDT"];
       mockUSDC = deployedAddresses["MockStablecoinsModule#MockUSDC"];
@@ -85,7 +85,7 @@ async function main() {
   try {
     execSync(
       "npx hardhat ignition deploy ignition/modules/Dex.js --network localhost",
-      { stdio: "inherit", cwd: process.cwd() }
+      { stdio: "inherit", cwd: process.cwd() },
     );
 
     const chainId = 31337;
@@ -93,7 +93,7 @@ async function main() {
 
     if (fs.existsSync(deploymentPath)) {
       const deployedAddresses = JSON.parse(
-        fs.readFileSync(deploymentPath, "utf8")
+        fs.readFileSync(deploymentPath, "utf8"),
       );
       dexAddress = deployedAddresses["DexModule#Dex"];
 
@@ -110,14 +110,14 @@ async function main() {
   // Step 5: Deploy TokenMinting contract using Hardhat Ignition
   // ============================================
   console.log(
-    "🛡️  Step 5: Deploying TokenMinting (ProtocolInsurance) and helper contracts..."
+    "🛡️  Step 5: Deploying TokenMinting (ProtocolInsurance) and helper contracts...",
   );
 
   let tokenMintingAddress, maturityHelperAddress, settlementHelperAddress;
   try {
     execSync(
       "npx hardhat ignition deploy ignition/modules/TokenMinting.js --network localhost",
-      { stdio: "inherit", cwd: process.cwd() }
+      { stdio: "inherit", cwd: process.cwd() },
     );
 
     const chainId = 31337;
@@ -125,7 +125,7 @@ async function main() {
 
     if (fs.existsSync(deploymentPath)) {
       const deployedAddresses = JSON.parse(
-        fs.readFileSync(deploymentPath, "utf8")
+        fs.readFileSync(deploymentPath, "utf8"),
       );
       tokenMintingAddress =
         deployedAddresses["TokenMintingModule#ProtocolInsurance"];
@@ -137,14 +137,16 @@ async function main() {
       if (!tokenMintingAddress) {
         console.log(
           "   ⚠️  Available deployment keys:",
-          Object.keys(deployedAddresses)
+          Object.keys(deployedAddresses),
         );
         throw new Error("TokenMinting address not found in deployment");
       }
 
       console.log(`   ✅ TokenMinting deployed at: ${tokenMintingAddress}`);
       console.log(`   ✅ MaturityHelper deployed at: ${maturityHelperAddress}`);
-      console.log(`   ✅ SettlementHelper deployed at: ${settlementHelperAddress}\n`);
+      console.log(
+        `   ✅ SettlementHelper deployed at: ${settlementHelperAddress}\n`,
+      );
     } else {
       throw new Error("Deployment addresses file not found");
     }
@@ -161,7 +163,7 @@ async function main() {
   try {
     const ProtocolInsurance = await hre.ethers.getContractAt(
       "ProtocolInsurance",
-      tokenMintingAddress
+      tokenMintingAddress,
     );
 
     // Get the signer (deployer)
@@ -169,7 +171,7 @@ async function main() {
 
     // Set the DEX contract address in TokenMinting
     const setDexTx = await ProtocolInsurance.connect(signer).setDexContract(
-      dexAddress
+      dexAddress,
     );
     await setDexTx.wait();
 
@@ -180,16 +182,62 @@ async function main() {
   }
 
   // ============================================
-  // Step 7: Get protocol token addresses and copy to frontend
+  // Step 7: Deploy ClaimManager contract
+  // ============================================
+  console.log("📝 Step 7: Deploying ClaimManager contract...");
+
+  let claimManagerAddress;
+  try {
+    console.log(
+      "   👮 Superadmin address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    );
+    console.log("   📄 Using ProtocolInsurance at:", tokenMintingAddress);
+
+    // Deploy ClaimManager using Ignition
+    const claimModuleImport = await import(
+      "../ignition/modules/ClaimManager.js"
+    );
+    const claimModule = claimModuleImport.default;
+
+    const { claimManager } = await hre.ignition.deploy(claimModule, {
+      parameters: {
+        ClaimManagerModule: {
+          protocolInsuranceAddress: tokenMintingAddress,
+        },
+      },
+    });
+
+    claimManagerAddress = await claimManager.getAddress();
+    console.log(`   ✅ ClaimManager deployed at: ${claimManagerAddress}`);
+
+    // Set ClaimManager in ProtocolInsurance
+    console.log("   🔗 Linking ClaimManager to ProtocolInsurance...");
+    const ProtocolInsurance = await hre.ethers.getContractAt(
+      "ProtocolInsurance",
+      tokenMintingAddress,
+    );
+    const [signer] = await hre.ethers.getSigners();
+    const setClaimManagerTx = await ProtocolInsurance.connect(
+      signer,
+    ).setClaimManager(claimManagerAddress);
+    await setClaimManagerTx.wait();
+    console.log("   ✅ ClaimManager linked to ProtocolInsurance\n");
+  } catch (error) {
+    console.error("   ❌ ClaimManager deployment failed:", error.message);
+    console.log("   ⚠️  Continuing without claim manager...\n");
+  }
+
+  // ============================================
+  // Step 8: Get protocol token addresses and copy to frontend
   // ============================================
   console.log(
-    "📋 Step 7: Extracting protocol token addresses and copying to frontend..."
+    "📋 Step 8: Extracting protocol token addresses and copying to frontend...",
   );
 
   try {
     const ProtocolInsurance = await hre.ethers.getContractAt(
       "ProtocolInsurance",
-      tokenMintingAddress
+      tokenMintingAddress,
     );
 
     // Get all 6 protocols
@@ -206,7 +254,7 @@ async function main() {
 
     for (const protocolName of protocols) {
       const protocolId = hre.ethers.keccak256(
-        hre.ethers.toUtf8Bytes(protocolName)
+        hre.ethers.toUtf8Bytes(protocolName),
       );
 
       try {
@@ -220,11 +268,11 @@ async function main() {
         };
 
         console.log(
-          `   ✅ ${protocolName}: i${key}=${tokens[0]}, p${key}=${tokens[1]}`
+          `   ✅ ${protocolName}: i${key}=${tokens[0]}, p${key}=${tokens[1]}`,
         );
       } catch (error) {
         console.log(
-          `   ⚠️  ${protocolName}: Protocol not found or not yet set up`
+          `   ⚠️  ${protocolName}: Protocol not found or not yet set up`,
         );
       }
     }
@@ -243,6 +291,7 @@ async function main() {
         TokenMinting: tokenMintingAddress,
         MaturityHelper: maturityHelperAddress,
         SettlementHelper: settlementHelperAddress,
+        ClaimManager: claimManagerAddress,
       },
       protocols: protocolTokens,
     };
@@ -258,7 +307,7 @@ async function main() {
     fs.writeFileSync(
       deploymentsPath,
       JSON.stringify(deploymentsData, null, 2),
-      "utf8"
+      "utf8",
     );
 
     console.log(`\n   ✅ Deployment addresses copied to: ${deploymentsPath}\n`);
@@ -289,11 +338,11 @@ async function main() {
     fs.writeFileSync(
       deploymentsPath,
       JSON.stringify(deploymentsData, null, 2),
-      "utf8"
+      "utf8",
     );
 
     console.log(
-      `   ✅ Basic deployment addresses copied to: ${deploymentsPath}\n`
+      `   ✅ Basic deployment addresses copied to: ${deploymentsPath}\n`,
     );
   }
 
@@ -304,13 +353,14 @@ async function main() {
   console.log("🎉 DEPLOYMENT COMPLETE!");
   console.log("═══════════════════════════════════════════════════════");
   console.log("\n📝 Summary:");
-  console.log(`   Mock USDT:     ${mockUSDT}`);
-  console.log(`   Mock USDC:     ${mockUSDC}`);
-  console.log(`   DEX:           ${dexAddress}`);
-  console.log(`   TokenMinting:  ${tokenMintingAddress}`);
+  console.log(`   Mock USDT:        ${mockUSDT}`);
+  console.log(`   Mock USDC:        ${mockUSDC}`);
+  console.log(`   DEX:              ${dexAddress}`);
+  console.log(`   TokenMinting:     ${tokenMintingAddress}`);
+  console.log(`   ClaimManager:     ${claimManagerAddress || "Not deployed"}`);
   console.log("\n💡 Next Steps:");
   console.log(
-    "   1. Run: npx hardhat run scripts/mintTokensToAccount.js --network localhost"
+    "   1. Run: npx hardhat run scripts/mintTokensToAccount.js --network localhost",
   );
   console.log("   2. Start frontend: cd next-app && npm run dev");
   console.log("   3. Visit: http://localhost:3000");

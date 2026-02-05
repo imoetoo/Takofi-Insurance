@@ -22,6 +22,9 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
     MaturityHelper public maturityHelper;
     SettlementHelper public settlementHelper;
     
+    // ClaimManager contract
+    address public claimManager;
+    
     // Supported stablecoins
     IERC20 public immutable USDT;
     IERC20 public immutable USDC;
@@ -449,7 +452,8 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
         uint256 maturityIndex,
         bool breachOccurred,
         uint256 totalITPayout
-    ) external onlyOwner {
+    ) external {
+        require(msg.sender == owner() || msg.sender == claimManager, "Only owner or ClaimManager");
         MaturityBucket storage maturity = maturities[protocolId][maturityIndex];
         settlementHelper.validateSettlement(maturity, block.timestamp);
         
@@ -590,6 +594,14 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
         address oldDex = address(dexContract);
         dexContract = IDex(_dexContract);
         emit DexContractUpdated(oldDex, _dexContract);
+    }
+    
+    /**
+     * @dev Set the ClaimManager contract address
+     */
+    function setClaimManager(address _claimManager) external onlyOwner {
+        require(_claimManager != address(0), "Invalid address");
+        claimManager = _claimManager;
     }
     
     // Emergency functions

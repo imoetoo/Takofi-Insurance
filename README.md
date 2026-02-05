@@ -18,6 +18,7 @@ TakoFi is a next-generation DeFi insurance protocol that allows users to protect
 - **🌐 Multi-Protocol Support**: Coverage for 6 major DeFi protocols (Aave, Compound, Uniswap, Curve, SushiSwap, PancakeSwap)
 - **⚖️ Settlement System**: Automatic principal redemption and insurance claims at maturity
 - **📈 Market-Based Pricing**: Annual insurance fees calculated from DEX order book prices
+- **📋 Breach Claim Management**: Submit detailed claims with evidence (PDF/images) for protocol breaches; superadmin approval workflow
 
 ### User Experience
 
@@ -113,6 +114,7 @@ TakoFi is a next-generation DeFi insurance protocol that allows users to protect
 #### **[STANDALONE CONTRACT]**
 
 - **Dex**
+
   - Order book-based decentralized exchange
   - Supports limit orders, market orders, cancellations
   - Provides price discovery for insurance pricing
@@ -153,6 +155,155 @@ TakoFi is a next-generation DeFi insurance protocol that allows users to protect
 - **MockStablecoin**
   - Simulates USDT/USDC with 6 decimals
   - Allows minting for development/testing
+
+## 🪝 Frontend Hooks Architecture
+
+The frontend uses custom React hooks for clean separation of concerns and reusable blockchain interaction logic.
+
+### Claims Management Hooks (Insurance Claims Feature)
+
+#### **1. `useSubmitClaim()`** - Submit Insurance Claims
+
+- **Purpose**: Submit a new breach claim for a protocol
+- **Features**:
+  - Uploads files to IPFS via Pinata
+  - Creates claim transaction on blockchain
+  - Tracks upload and submission status
+- **Used In**: SubmitClaimDialog (claim submission form)
+- **Returns**: `{ submitClaim(), isSubmitting, error, txHash }`
+
+#### **2. `useUserClaims()`** - Fetch User's Claims
+
+- **Purpose**: Get all claims belonging to the current user (both pending and processed)
+- **Features**:
+  - Fetches claim IDs and details
+  - Shows pending and processed claims
+  - Supports claim updates
+- **Used In**:
+  - "My Claims" tab (all user's claims)
+  - "Processed Claims" tab (filtered for regular users)
+- **Returns**: `{ claims[], loading, error, refetch }`
+
+#### **3. `usePendingClaims()`** - Fetch All Pending Claims
+
+- **Purpose**: Get all pending claims in the system (superadmin only)
+- **Features**:
+  - Fetches all claims with pending status
+  - Includes claim details from all users
+- **Used In**: "All Pending Claims" tab (superadmin only)
+- **Returns**: `{ claims[], loading, error }`
+
+#### **4. `useAllProcessedClaims()`** - Fetch All Processed Claims
+
+- **Purpose**: Get all processed/reviewed claims in the system (superadmin only)
+- **Features**:
+  - Fetches claims with approved, rejected, or settled status
+  - Shows all processed claims from all users
+  - Superadmin oversight of decisions
+- **Used In**: "Processed Claims" tab (superadmin only)
+- **Returns**: `{ claims[], loading, refetch }`
+
+#### **5. `useUpdateClaim()`** - Edit Pending Claims
+
+- **Purpose**: Modify a pending claim before superadmin review
+- **Features**:
+  - Updates claim details, amount, date, attachments
+  - Only allowed for pending claims
+  - File upload to IPFS
+- **Used In**: EditClaimDialog (edit form)
+- **Returns**: `{ updateClaim(), isUpdating, error, txHash }`
+
+#### **6. `useClaimManager()` - Approve/Reject Claims**
+
+- **Subhooks**:
+  - **`useApproveClaim()`**: Approve a pending claim (superadmin)
+  - **`useRejectClaim()`**: Reject a pending claim (superadmin)
+- **Purpose**: Superadmin review actions on claims
+- **Features**:
+  - Add optional notes/reasons
+  - Marks claims as approved/rejected
+  - Updates review timestamp
+- **Used In**: ViewClaimDialog (approve/reject buttons)
+- **Returns**: `{ approveClaim(claimId, notes), isApproving, error }`
+
+---
+
+### Protocol & Token Hooks (Core Features)
+
+#### **7. `useProtocolITBalances()`** - Get Insurance Token Balances
+
+- **Purpose**: Fetch your Insurance Token balances for each protocol and maturity
+- **Features**:
+  - Shows balances for 6M and 12M maturities
+  - Calculates combined totals
+  - Tracks expiry dates
+  - Determines if maturity is expired
+- **Used In**: "My Insurance Tokens" tab
+- **Returns**: `{ protocolBalances[], loading, error }`
+
+#### **8. `useTokenMinting()`** - Mint/Burn Tokens
+
+- **Purpose**: Create and burn Insurance & Principal tokens
+- **Features**:
+  - Mint IT + PT with deposit
+  - Burn tokens for redemption
+  - Tracks transaction status
+- **Used In**: Mint Tokens page
+- **Returns**: `{ mintTokens(), burnTokens(), loading, error }`
+
+#### **9. `useMaturity()`** - Get Maturity Information
+
+- **Purpose**: Fetch maturity bucket details (expiry, settlement status, breach info)
+- **Features**:
+  - Retrieves maturity metadata
+  - Shows settlement status
+  - Tracks breach occurrence
+- **Used In**: Various pages tracking maturity state
+- **Returns**: `{ maturity{}, loading, error }`
+
+#### **10. `useDex()`** - DEX Trading Operations
+
+- **Purpose**: Interact with the order book DEX
+- **Features**:
+  - Place limit orders (buy/sell)
+  - Execute market orders
+  - Cancel orders
+  - View order book
+  - Track filled amounts
+- **Used In**: Insurance Market & Principal Market pages
+- **Returns**: `{ placeOrder(), cancelOrder(), takeOrder(), loading, error }`
+
+#### **11. `useERC20()`** - Generic Token Operations
+
+- **Purpose**: Perform standard ERC20 operations on any token
+- **Features**:
+  - Approve token spending
+  - Transfer tokens
+  - Check balances and allowances
+  - Query decimals and symbol
+- **Used In**: Token operations across all pages
+- **Returns**: `{ approve(), transfer(), balanceOf(), allowance(), loading }`
+
+---
+
+### Hook Architecture Overview
+
+```
+User Journey (Regular User):
+1. useProtocolITBalances() → See available protocols to claim on
+2. useSubmitClaim() → Submit insurance claim
+3. useUserClaims() → View pending claim (My Claims)
+4. useUpdateClaim() → Edit if needed
+5. useUserClaims() (filtered) → See approved/rejected result (Processed Claims)
+
+Superadmin Journey:
+1. usePendingClaims() → See all pending claims system-wide
+2. useClaimManager (approve/reject) → Review and decide
+3. useAllProcessedClaims() → Track all processed claims
+4. useUserClaims() → Can view specific user claims
+```
+
+---
 
 ## 🛠️ Getting Started
 
@@ -263,7 +414,15 @@ npm run dev
 - Maintain exposure to underlying assets
 - Execute orders on maturity-specific order books
 
-#### 5. Redeem Principal Tokens at Maturity
+#### 5. Submit Breach Claims (NEW!)
+
+- Navigate to **"Submit Claims"** page
+- Submit detailed breach claims with evidence
+- Track claim status (Pending, Approved, Rejected, Settled)
+- Superadmin reviews and approves/rejects claims
+- View your ongoing and historical claims
+
+#### 6. Redeem Principal Tokens at Maturity
 
 - Navigate to **"Redeem Principal"** page
 - Select expired maturity bucket
@@ -272,7 +431,7 @@ npm run dev
   - **No breach**: Full principal value
   - **Breach occurred**: Impaired value (reduced by insurance payouts)
 
-#### 6. Claim Insurance Payouts (if breach occurred)
+#### 7. Claim Insurance Payouts (if breach occurred)
 
 - Only available if protocol was breached and maturity settled
 - Call `claimInsurancePayout()` with IT amount
@@ -403,6 +562,8 @@ npm run node            # Start local Hardhat node
 
 # Deployment
 npm run deploy:all      # Complete deployment with automation
+npm run deploy:voting   # Deploy voting mechanism (after deploy:all)
+npm run demo:voting     # Run voting demo script
 
 # Utility Scripts
 npm run mint            # Mint test tokens to your account
@@ -413,15 +574,20 @@ npm run bal             # Analyze account balances
 npx hardhat ignition deploy ignition/modules/MockStablecoins.js --network localhost
 npx hardhat ignition deploy ignition/modules/Dex.js --network localhost
 npx hardhat ignition deploy ignition/modules/TokenMinting.js --network localhost
+npx hardhat ignition deploy ignition/modules/VotingMechanism.js --network localhost --parameters '{"VotingMechanismModule":{"protocolInsuranceAddress":"<ADDRESS>"}}'
+```
 
 # Settlement (Owner only)
+
 npx hardhat run scripts/settleMaturity.js --network localhost
 
 # Frontend Development
+
 cd next-app
-npm run dev             # Start dev server with Turbopack
-npm run build           # Production build
-npm run lint            # Lint code
+npm run dev # Start dev server with Turbopack
+npm run build # Production build
+npm run lint # Lint code
+
 ```
 
 ## 🔐 Security Features
@@ -483,8 +649,10 @@ Each protocol has:
 Annual insurance fees calculated from DEX market:
 
 ```
+
 Annual Fee % = (IT Market Price / Coverage Amount) × 100%
-```
+
+````
 
 - Fetches best sell price from USDC and USDT order books
 - Takes minimum for best rate
@@ -542,7 +710,7 @@ struct ProtocolInfo {
     uint256 totalITBurntFromPayouts;  // Burnt IT amount
     uint256 mintingFee;               // Fee in basis points
 }
-```
+````
 
 ## 🤝 Contributing
 

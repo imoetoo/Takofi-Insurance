@@ -51,6 +51,12 @@ export default function Header() {
           >
             <span>Redeem PT</span>
           </Link>
+          <Link
+            href="/redeem-insurance"
+            className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors py-2 px-1 text-base font-medium"
+          >
+            <span>Submit Claims</span>
+          </Link>
         </div>
       </div>
 

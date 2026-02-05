@@ -104,9 +104,12 @@ export default function ProtocolSelector({
               >
                 {selectedProtocol.title}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Capacity: {selectedProtocol.capacity} • Rate:{" "}
-                {selectedProtocol.minRate}%-{selectedProtocol.maxRate}%
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ opacity: 0 }}
+              >
+                {/* Hidden for now */}
               </Typography>
             </Box>
           </Box>
@@ -115,7 +118,7 @@ export default function ProtocolSelector({
               value={selectedProtocol.title}
               onChange={(e) => {
                 const protocol = protocols.find(
-                  (p) => p.title === e.target.value
+                  (p) => p.title === e.target.value,
                 );
                 if (protocol) onProtocolChange(protocol);
               }}
@@ -162,9 +165,9 @@ export default function ProtocolSelector({
                       <Typography
                         variant="caption"
                         color="text.secondary"
-                        sx={{ fontSize: "0.7rem" }}
+                        sx={{ fontSize: "0.7rem", opacity: 0 }}
                       >
-                        {protocol.minRate}%-{protocol.maxRate}%
+                        {/* Hidden for now */}
                       </Typography>
                     </Box>
                   </Box>

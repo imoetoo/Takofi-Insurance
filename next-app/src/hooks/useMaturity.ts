@@ -22,7 +22,7 @@ interface UseMaturitiesReturn {
  * Hook to fetch both maturity buckets for a protocol
  */
 export function useMaturities(
-  protocolName: string | null | undefined
+  protocolName: string | null | undefined,
 ): UseMaturitiesReturn {
   const protocolId = protocolName
     ? keccak256(stringToBytes(protocolName))
@@ -84,7 +84,7 @@ export function useMaturities(
  */
 export function useIsMaturityExpired(
   protocolName: string | null | undefined,
-  maturityIndex: number
+  maturityIndex: number,
 ): boolean {
   const protocolId = protocolName
     ? keccak256(stringToBytes(protocolName))
@@ -108,7 +108,7 @@ export function useIsMaturityExpired(
  */
 export function useDaysUntilMaturity(
   protocolName: string | null | undefined,
-  maturityIndex: number
+  maturityIndex: number,
 ): number {
   const protocolId = protocolName
     ? keccak256(stringToBytes(protocolName))
@@ -138,6 +138,7 @@ export function formatMaturityLabel(maturity: MaturityBucket | undefined) {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC",
   });
 }
 

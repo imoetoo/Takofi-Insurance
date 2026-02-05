@@ -1,17 +1,41 @@
 import deployments from "./deployments.json";
 
+// Type for deployments structure
+type DeploymentsContracts = {
+  TokenMinting: string;
+  Dex: string;
+  MockUSDT: string;
+  MockUSDC: string;
+  ClaimManager?: string;
+  [key: string]: string | undefined;
+};
+
 // Maturity bucket indices
 export const MATURITY_6M = 0;
 export const MATURITY_12M = 1;
 
+// Supported protocols
+export const PROTOCOLS = [
+  "Aave",
+  "Compound",
+  "Uniswap V3",
+  "Curve Finance",
+  "SushiSwap",
+  "PancakeSwap",
+] as const;
+
+export type ProtocolName = (typeof PROTOCOLS)[number];
+
 // Contract addresses from deployment
-export const TOKEN_MINTING_CONTRACT_ADDRESS = deployments.contracts
-  .TokenMinting as `0x${string}`;
-export const DEX_CONTRACT_ADDRESS = deployments.contracts.Dex as `0x${string}`;
+const contracts = deployments.contracts as DeploymentsContracts;
+
+export const TOKEN_MINTING_CONTRACT_ADDRESS = contracts.TokenMinting as `0x${string}`;
+export const DEX_CONTRACT_ADDRESS = contracts.Dex as `0x${string}`;
+export const CLAIM_MANAGER_ADDRESS = contracts.ClaimManager as `0x${string}`;
 
 // Mock stablecoin addresses from deployment (for localhost testing)
-export const USDT_ADDRESS = deployments.contracts.MockUSDT as `0x${string}`;
-export const USDC_ADDRESS = deployments.contracts.MockUSDC as `0x${string}`;
+export const USDT_ADDRESS = contracts.MockUSDT as `0x${string}`;
+export const USDC_ADDRESS = contracts.MockUSDC as `0x${string}`;
 
 // Protocol token addresses
 export const PROTOCOL_TOKENS = {
@@ -356,6 +380,96 @@ export const ERC20_ABI = [
     name: "totalSupply",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
+export const CLAIM_MANAGER_ABI = [
+  {
+    inputs: [
+      { name: "protocolId", type: "bytes32" },
+      { name: "hackAmount", type: "uint256" },
+      { name: "hackDate", type: "uint256" },
+      { name: "details", type: "string" },
+      { name: "attachmentURI", type: "string" },
+    ],
+    name: "submitClaim",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "claimId", type: "uint256" },
+      { name: "hackAmount", type: "uint256" },
+      { name: "hackDate", type: "uint256" },
+      { name: "details", type: "string" },
+      { name: "attachmentURI", type: "string" },
+    ],
+    name: "updateClaim",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "user", type: "address" }],
+    name: "getUserClaims",
+    outputs: [{ name: "", type: "uint256[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "claimId", type: "uint256" }],
+    name: "getClaim",
+    outputs: [
+      { name: "", type: "uint256" },
+      { name: "", type: "bytes32" },
+      { name: "", type: "uint256" },
+      { name: "", type: "uint256" },
+      { name: "", type: "uint256" },
+      { name: "", type: "address" },
+      { name: "", type: "uint256" },
+      { name: "", type: "string" },
+      { name: "", type: "string" },
+      { name: "", type: "uint8" },
+      { name: "", type: "string" },
+      { name: "", type: "uint256" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getAllPendingClaims",
+    outputs: [{ name: "", type: "uint256[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "claimId", type: "uint256" },
+      { name: "notes", type: "string" },
+    ],
+    name: "approveClaim",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "claimId", type: "uint256" },
+      { name: "notes", type: "string" },
+    ],
+    name: "rejectClaim",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "claimId", type: "uint256" }],
+    name: "finalizeClaim",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
 ] as const;
