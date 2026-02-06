@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import {
+  usePublicClient,
   useReadContract,
   useWriteContract,
   useWaitForTransactionReceipt,
@@ -183,16 +184,26 @@ export function useUserClaims(userAddress: string | undefined) {
 }
 
 export function useApproveClaim() {
-  const { writeContract, data: hash, error, isPending } = useWriteContract();
+  const {
+    writeContractAsync,
+    data: hash,
+    error,
+    isPending,
+  } = useWriteContract();
+  const publicClient = usePublicClient();
   const { isSuccess } = useWaitForTransactionReceipt({ hash });
 
   const approveClaim = async (claimId: number, notes: string) => {
-    return writeContract({
+    const txHash = await writeContractAsync({
       address: deployments.contracts.ClaimManager as `0x${string}`,
       abi: CLAIM_MANAGER_ABI,
       functionName: "approveClaim",
       args: [BigInt(claimId), notes],
     });
+    if (publicClient) {
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
+    }
+    return txHash;
   };
 
   return {
@@ -204,16 +215,26 @@ export function useApproveClaim() {
 }
 
 export function useRejectClaim() {
-  const { writeContract, data: hash, error, isPending } = useWriteContract();
+  const {
+    writeContractAsync,
+    data: hash,
+    error,
+    isPending,
+  } = useWriteContract();
+  const publicClient = usePublicClient();
   const { isSuccess } = useWaitForTransactionReceipt({ hash });
 
   const rejectClaim = async (claimId: number, notes: string) => {
-    return writeContract({
+    const txHash = await writeContractAsync({
       address: deployments.contracts.ClaimManager as `0x${string}`,
       abi: CLAIM_MANAGER_ABI,
       functionName: "rejectClaim",
       args: [BigInt(claimId), notes],
     });
+    if (publicClient) {
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
+    }
+    return txHash;
   };
 
   return {
@@ -225,16 +246,26 @@ export function useRejectClaim() {
 }
 
 export function useFinalizeClaim() {
-  const { writeContract, data: hash, error, isPending } = useWriteContract();
+  const {
+    writeContractAsync,
+    data: hash,
+    error,
+    isPending,
+  } = useWriteContract();
+  const publicClient = usePublicClient();
   const { isSuccess } = useWaitForTransactionReceipt({ hash });
 
   const finalizeClaim = async (claimId: number) => {
-    return writeContract({
+    const txHash = await writeContractAsync({
       address: deployments.contracts.ClaimManager as `0x${string}`,
       abi: CLAIM_MANAGER_ABI,
       functionName: "finalizeClaim",
       args: [BigInt(claimId)],
     });
+    if (publicClient) {
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
+    }
+    return txHash;
   };
 
   return {

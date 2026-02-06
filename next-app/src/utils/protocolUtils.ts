@@ -22,3 +22,20 @@ export const SUPPORTED_PROTOCOLS = [
 ] as const;
 
 export type ProtocolName = (typeof SUPPORTED_PROTOCOLS)[number];
+
+/**
+ * Converts a protocolId (bytes32 hash) back to its protocol name
+ * @param protocolId - The bytes32 hash of the protocol
+ * @returns The protocol name or "Unknown" if not found
+ */
+export function getProtocolNameFromId(protocolId: string): string {
+  // Pre-compute all protocol ID hashes and create a reverse lookup map
+  const protocolIdMap: Record<string, string> = {};
+
+  SUPPORTED_PROTOCOLS.forEach((name) => {
+    const id = getProtocolId(name);
+    protocolIdMap[id.toLowerCase()] = name;
+  });
+
+  return protocolIdMap[protocolId.toLowerCase()] || "Unknown";
+}

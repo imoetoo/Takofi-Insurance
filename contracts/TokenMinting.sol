@@ -46,6 +46,12 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
     // User balances by maturity: user → protocol → maturityIndex → balance
     mapping(address => mapping(bytes32 => mapping(uint256 => uint256))) public userITByMaturity;
     mapping(address => mapping(bytes32 => mapping(uint256 => uint256))) public userPTByMaturity;
+        // Impairment tracking: protocol → maturityIndex → totalPayout (accumulated damage)
+        mapping(bytes32 => mapping(uint256 => uint256)) public totalPayoutByMaturity;
+    
+        // Original total deposited per maturity (for impairment calculation)
+        mapping(bytes32 => mapping(uint256 => uint256)) public originalTotalDepositedByMaturity;
+    
     
     // Events
     event ProtocolAdded(bytes32 indexed protocolId, string name);
@@ -79,6 +85,7 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
     event PrincipalRedeemed(address indexed user, bytes32 indexed protocolId, uint256 maturityIndex, uint256 ptAmount, uint256 payoutAmount);
     event InsuranceClaimed(address indexed user, bytes32 indexed protocolId, uint256 maturityIndex, uint256 itAmount, uint256 payoutAmount);
     event ExpiredITBurned(address indexed user, bytes32 indexed protocolId, uint256 maturityIndex, uint256 itAmount);
+        event ImpairmentApplied(bytes32 indexed protocolId, uint256 maturityIndex, uint256 payoutAmount);
     
     constructor(address _usdt, address _usdc, address _maturityHelper, address _settlementHelper) Ownable(msg.sender) {
         USDT = IERC20(_usdt);
@@ -209,18 +216,34 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
         IERC20(stablecoin).transferFrom(msg.sender, address(this), amount);
         
         // Convert from 6-decimal stablecoin to 18-decimal tokens (multiply by 10^12)
-        uint256 tokenAmount = netAmount * 10**12;
+        uint256 itTokenAmount = netAmount * 10**12;
         
-        // Mint tokens 1:1 with converted amount
-        protocol.insuranceToken.mint(msg.sender, tokenAmount);
-        protocol.principalToken.mint(msg.sender, tokenAmount);
+        // Check if fund is solvent before allowing new minting (only if payouts have occurred)
+        uint256 currentDeposited = originalTotalDepositedByMaturity[protocolId][maturityIndex];
+        uint256 totalPayout = totalPayoutByMaturity[protocolId][maturityIndex];
+        if (totalPayout > 0) {
+            require(currentDeposited > totalPayout, "Coverage fund fully drained - minting disabled");
+        }
+        
+        // Update total deposited for this maturity
+        originalTotalDepositedByMaturity[protocolId][maturityIndex] += netAmount;
+        uint256 totalDeposited = originalTotalDepositedByMaturity[protocolId][maturityIndex];
+        
+        // Calculate impairment: remaining funds / total deposited
+        uint256 remaining = totalDeposited - totalPayout;
+        uint256 impairmentFactor = (remaining * 1e18) / totalDeposited;
+        uint256 ptTokenAmount = (itTokenAmount * 1e18) / impairmentFactor;
+        
+        // Mint tokens
+        protocol.insuranceToken.mint(msg.sender, itTokenAmount);
+        protocol.principalToken.mint(msg.sender, ptTokenAmount);
         
         // Track by maturity
-        userITByMaturity[msg.sender][protocolId][maturityIndex] += tokenAmount;
-        userPTByMaturity[msg.sender][protocolId][maturityIndex] += tokenAmount;
+        userITByMaturity[msg.sender][protocolId][maturityIndex] += itTokenAmount;
+        userPTByMaturity[msg.sender][protocolId][maturityIndex] += ptTokenAmount;
         
-        totalITByMaturity[protocolId][maturityIndex] += tokenAmount;
-        totalPTByMaturity[protocolId][maturityIndex] += tokenAmount;
+        totalITByMaturity[protocolId][maturityIndex] += itTokenAmount;
+        totalPTByMaturity[protocolId][maturityIndex] += ptTokenAmount;
         
         // Update overall records
         userDeposits[msg.sender][protocolId] += netAmount;
@@ -442,6 +465,48 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
         emit PayoutProcessed(protocolId, itAmount, payoutAmount);
     }
     
+    // ========== IMPAIRMENT FUNCTIONS ==========
+    
+    /**
+     * @notice Get the impairment factor for a protocol maturity
+     * @dev Returns (Original Deposited - Total Payout) / Original Deposited
+     * @dev Returns 1e18 (1.0) if no impairment
+     */
+    function getImpairmentFactor(
+        bytes32 protocolId,
+        uint256 maturityIndex
+    ) external view returns (uint256) {
+        uint256 originalDeposited = originalTotalDepositedByMaturity[protocolId][maturityIndex];
+        uint256 totalPayout = totalPayoutByMaturity[protocolId][maturityIndex];
+        if (originalDeposited == 0) return 1e18;
+        uint256 remaining = originalDeposited > totalPayout ? originalDeposited - totalPayout : 0;
+        return (remaining * 1e18) / originalDeposited;
+    }
+
+    /**
+     * @notice Get total payout amount for a protocol maturity
+     */
+    function getTotalPayoutByMaturity(
+        bytes32 protocolId,
+        uint256 maturityIndex
+    ) external view returns (uint256) {
+        return totalPayoutByMaturity[protocolId][maturityIndex];
+    }
+
+    /**
+     * @notice Apply impairment when a claim is approved
+     */
+    function applyImpairment(
+        bytes32 protocolId,
+        uint256 maturityIndex,
+        uint256 payoutAmount
+    ) external {
+        require(msg.sender == claimManager, "Only ClaimManager");
+        require(payoutAmount > 0, "Amount > 0");
+        totalPayoutByMaturity[protocolId][maturityIndex] += payoutAmount;
+        emit ImpairmentApplied(protocolId, maturityIndex, payoutAmount);
+    }
+
     // ========== SETTLEMENT & REDEMPTION FUNCTIONS ==========
     
     /**
@@ -455,7 +520,12 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
     ) external {
         require(msg.sender == owner() || msg.sender == claimManager, "Only owner or ClaimManager");
         MaturityBucket storage maturity = maturities[protocolId][maturityIndex];
-        settlementHelper.validateSettlement(maturity, block.timestamp);
+        if (!breachOccurred) {
+            settlementHelper.validateSettlement(maturity, block.timestamp);
+        } else {
+            require(maturity.isActive, "");
+            require(!maturity.isSettled, "");
+        }
         
         maturity.isSettled = true;
         maturity.breachOccurred = breachOccurred;
@@ -493,14 +563,15 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
         uint256 userPT = userPTByMaturity[msg.sender][protocolId][maturityIndex];
         uint256 totalPT = totalPTByMaturity[protocolId][maturityIndex];
         
-        // Use helper for calculation
-        uint256 payoutAmount = settlementHelper.calculatePTRedemption(
-            ptAmount,
-            userPT,
-            totalPT,
-            protocol.totalDeposited,
-            maturity.totalITPayout
-        );
+        require(ptAmount > 0, "");
+        require(userPT >= ptAmount, "");
+        require(totalPT > 0, "");
+
+        // Calculate payout using impairment-adjusted pool for this maturity
+        uint256 originalDeposited = originalTotalDepositedByMaturity[protocolId][maturityIndex];
+        uint256 totalPayout = totalPayoutByMaturity[protocolId][maturityIndex];
+        uint256 availableForPT = originalDeposited > totalPayout ? originalDeposited - totalPayout : 0;
+        uint256 payoutAmount = (availableForPT * ptAmount) / totalPT;
         
         // Burn PT
         protocol.principalToken.burn(msg.sender, ptAmount);
@@ -520,44 +591,46 @@ contract ProtocolInsurance is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev Claim insurance payout after breach settlement
+     * @dev Claim insurance payout after breach settlement (only via ClaimManager)
      */
     function claimInsurancePayout(
+        address claimant,
         bytes32 protocolId,
         uint256 maturityIndex,
-        uint256 itAmount
+        uint256 payoutAmount,
+        address preferredStablecoin
     ) external nonReentrant {
+        require(msg.sender == claimManager, "Only ClaimManager");
         MaturityBucket storage maturity = maturities[protocolId][maturityIndex];
-        require(maturity.isActive, "");
-        require(maturity.isSettled, "");
-        require(maturity.breachOccurred, "");
-        
-        ProtocolInfo storage protocol = protocols[protocolId];
-        uint256 userIT = userITByMaturity[msg.sender][protocolId][maturityIndex];
-        uint256 totalIT = totalITByMaturity[protocolId][maturityIndex];
-        
-        // Use helper for calculation
-        uint256 payoutAmount = settlementHelper.calculateITClaim(
-            itAmount,
-            userIT,
-            totalIT,
-            maturity.totalITPayout
+        require(maturity.isActive, "Maturity not active");
+        require(maturity.isSettled, "Maturity not settled");
+        require(maturity.breachOccurred, "No breach occurred");
+        require(maturity.totalITPayout > 0, "No IT payout allocated");
+        require(payoutAmount > 0 && payoutAmount <= maturity.totalITPayout, "Invalid payout amount");
+        require(
+            preferredStablecoin == address(USDC) || preferredStablecoin == address(USDT),
+            ""
         );
         
+        ProtocolInfo storage protocol = protocols[protocolId];
+        uint256 userIT = userITByMaturity[claimant][protocolId][maturityIndex];
+        
+        // Convert payout amount from 6-decimal stablecoin to 18-decimal IT (1:1 ratio)
+        uint256 itAmount = payoutAmount * 10**12;
+        require(itAmount > 0, "IT amount must be > 0");
+        require(userIT >= itAmount, "Insufficient IT balance");
+        
         // Burn IT
-        protocol.insuranceToken.burn(msg.sender, itAmount);
-        userITByMaturity[msg.sender][protocolId][maturityIndex] -= itAmount;
+        protocol.insuranceToken.burn(claimant, itAmount);
+        userITByMaturity[claimant][protocolId][maturityIndex] -= itAmount;
         totalITByMaturity[protocolId][maturityIndex] -= itAmount;
         
         // Transfer stablecoin
-        IERC20 payoutToken = USDC;
-        if (payoutToken.balanceOf(address(this)) < payoutAmount) {
-            payoutToken = USDT;
-        }
-        require(payoutToken.balanceOf(address(this)) >= payoutAmount, "");
-        payoutToken.transfer(msg.sender, payoutAmount);
+        IERC20 payoutToken = preferredStablecoin == address(USDT) ? USDT : USDC;
+        require(payoutToken.balanceOf(address(this)) >= payoutAmount, "Insufficient stablecoin in contract");
+        payoutToken.transfer(claimant, payoutAmount);
         
-        emit InsuranceClaimed(msg.sender, protocolId, maturityIndex, itAmount, payoutAmount);
+        emit InsuranceClaimed(claimant, protocolId, maturityIndex, itAmount, payoutAmount);
     }
     
     /**

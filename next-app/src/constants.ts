@@ -29,7 +29,8 @@ export type ProtocolName = (typeof PROTOCOLS)[number];
 // Contract addresses from deployment
 const contracts = deployments.contracts as DeploymentsContracts;
 
-export const TOKEN_MINTING_CONTRACT_ADDRESS = contracts.TokenMinting as `0x${string}`;
+export const TOKEN_MINTING_CONTRACT_ADDRESS =
+  contracts.TokenMinting as `0x${string}`;
 export const DEX_CONTRACT_ADDRESS = contracts.Dex as `0x${string}`;
 export const CLAIM_MANAGER_ADDRESS = contracts.ClaimManager as `0x${string}`;
 
@@ -323,13 +324,35 @@ export const TOKEN_MINTING_ABI = [
   },
   {
     inputs: [
+      { internalType: "address", name: "claimant", type: "address" },
       { internalType: "bytes32", name: "protocolId", type: "bytes32" },
       { internalType: "uint256", name: "maturityIndex", type: "uint256" },
-      { internalType: "uint256", name: "itAmount", type: "uint256" },
+      { internalType: "uint256", name: "payoutAmount", type: "uint256" },
+      { internalType: "address", name: "preferredStablecoin", type: "address" },
     ],
     name: "claimInsurancePayout",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "protocolId", type: "bytes32" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
+    ],
+    name: "getImpairmentFactor",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "protocolId", type: "bytes32" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
+    ],
+    name: "getTotalPayoutByMaturity",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -342,6 +365,26 @@ export const TOKEN_MINTING_ABI = [
     name: "settleMaturity",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "", type: "bytes32" },
+      { internalType: "uint256", name: "", type: "uint256" },
+    ],
+    name: "originalTotalDepositedByMaturity",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "", type: "bytes32" },
+      { internalType: "uint256", name: "", type: "uint256" },
+    ],
+    name: "totalPayoutByMaturity",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
     type: "function",
   },
 ] as const;
@@ -446,6 +489,13 @@ export const CLAIM_MANAGER_ABI = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "getAllProcessedClaims",
+    outputs: [{ name: "", type: "uint256[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       { name: "claimId", type: "uint256" },
       { name: "notes", type: "string" },
@@ -468,6 +518,16 @@ export const CLAIM_MANAGER_ABI = [
   {
     inputs: [{ name: "claimId", type: "uint256" }],
     name: "finalizeClaim",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "claimId", type: "uint256" },
+      { name: "preferredStablecoin", type: "address" },
+    ],
+    name: "claimInsurancePayout",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

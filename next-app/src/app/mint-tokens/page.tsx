@@ -17,7 +17,7 @@ import {
 import { AccessTime, Info } from "@mui/icons-material";
 import { useState, useCallback } from "react";
 import { useAccount, useConfig } from "wagmi";
-import { parseUnits } from "viem";
+import { parseUnits, formatUnits } from "viem";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import toast from "react-hot-toast";
 import CompactTokenSelector from "@/components/CompactTokenSelector";
@@ -32,6 +32,8 @@ import {
   formatMaturityLabel,
   useDaysUntilMaturity,
 } from "@/hooks/useMaturity";
+import { useImpairmentFactor } from "@/hooks/useImpairmentFactor";
+import { useFundStatus } from "@/hooks/useFundStatus";
 import {
   TOKEN_MINTING_CONTRACT_ADDRESS,
   USDT_ADDRESS,
@@ -78,7 +80,7 @@ const uniqueBaseProtocols = insuranceListings
 export default function MintTokens() {
   const [inputToken, setInputToken] = useState(inputTokens[0]);
   const [selectedProtocol, setSelectedProtocol] = useState(
-    uniqueBaseProtocols[0]
+    uniqueBaseProtocols[0],
   );
   const [state, setState] = useState<MintTokensState>({
     inputAmount: "",
@@ -98,7 +100,7 @@ export default function MintTokens() {
   // Extract base protocol name (remove maturity suffix like "(6M)" or "(12M)")
   const baseProtocolName = selectedProtocol.title.replace(
     /\s*\((?:6M|12M)\)\s*$/i,
-    ""
+    "",
   );
 
   // Maturity hooks
@@ -113,14 +115,14 @@ export default function MintTokens() {
   // ERC20 hooks for approval
   const { approve } = useERC20Approval(
     tokenAddress,
-    TOKEN_MINTING_CONTRACT_ADDRESS
+    TOKEN_MINTING_CONTRACT_ADDRESS,
   );
 
   // Check current allowance
   const { data: allowance, refetch: refetchAllowance } = useERC20Allowance(
     tokenAddress,
     address,
-    TOKEN_MINTING_CONTRACT_ADDRESS
+    TOKEN_MINTING_CONTRACT_ADDRESS,
   );
 
   // Note: Balance checking can be added later if needed for validation
@@ -139,6 +141,42 @@ export default function MintTokens() {
   const maturities = [maturity6M, maturity12M];
   const daysRemaining = [days6M, days12M];
   const selectedDays = daysRemaining[state.selectedMaturity];
+
+  // Impairment factor for selected protocol & maturity
+  const { data: impairmentFactorData } = useImpairmentFactor(
+    baseProtocolName,
+    state.selectedMaturity,
+  );
+  const {
+    isDrained,
+    totalDeposited,
+    totalPayout,
+    isLoading: fundStatusLoading,
+  } = useFundStatus(baseProtocolName, state.selectedMaturity);
+  const impairmentFactor = impairmentFactorData
+    ? Number(formatUnits(impairmentFactorData, 18))
+    : 1;
+  const inputAmountNumber = Number(netAmount || "0");
+  const itDisplayAmount = Number.isFinite(inputAmountNumber)
+    ? inputAmountNumber
+    : 0;
+  // If fund is drained, PT should be 0
+  const ptDisplayAmount = isDrained
+    ? 0
+    : impairmentFactor > 0
+    ? itDisplayAmount / impairmentFactor
+    : itDisplayAmount;
+  const formatDisplay = (value: number) =>
+    Number.isFinite(value) ? value.toFixed(2) : "0.00";
+
+  // Debug logging
+  console.log("[Mint Page] Fund Status:", {
+    isDrained,
+    totalDeposited: totalDeposited?.toString(),
+    totalPayout: totalPayout?.toString(),
+    fundStatusLoading,
+    impairmentFactor,
+  });
 
   // Handler for protocol change
   const handleProtocolChange = (protocol: (typeof insuranceListings)[0]) => {
@@ -166,7 +204,7 @@ export default function MintTokens() {
 
     if (selectedDays <= 0) {
       toast.error(
-        "Selected maturity has expired. Please choose another bucket."
+        "Selected maturity has expired. Please choose another bucket.",
       );
       return;
     }
@@ -197,7 +235,7 @@ export default function MintTokens() {
               approvalError instanceof Error
                 ? approvalError.message
                 : String(approvalError)
-            }`
+            }`,
           );
         }
       }
@@ -212,7 +250,7 @@ export default function MintTokens() {
         "Amount:",
         state.inputAmount,
         "Maturity:",
-        state.selectedMaturity
+        state.selectedMaturity,
       );
 
       try {
@@ -221,7 +259,7 @@ export default function MintTokens() {
           baseProtocolName,
           state.selectedMaturity,
           inputToken.symbol,
-          state.inputAmount
+          state.inputAmount,
         );
         console.log("Mint transaction submitted:", mintTransactionHash);
 
@@ -234,7 +272,7 @@ export default function MintTokens() {
         throw new Error(
           `Mint transaction failed: ${
             mintError instanceof Error ? mintError.message : String(mintError)
-          }`
+          }`,
         );
       }
 
@@ -247,7 +285,7 @@ export default function MintTokens() {
         {
           duration: 4000,
           icon: "🎉",
-        }
+        },
       );
       setState((prev) => ({ ...prev, inputAmount: "" }));
 
@@ -255,7 +293,7 @@ export default function MintTokens() {
       refetchAllowance().catch((refetchError) => {
         console.error(
           "Error refetching allowance (non-critical):",
-          refetchError
+          refetchError,
         );
       });
 
@@ -480,6 +518,14 @@ export default function MintTokens() {
                     />
                   </Box>
 
+                  {/* Fund Drained Warning */}
+                  {isDrained && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                      Coverage fund fully drained - minting disabled for this
+                      maturity. Please select a different maturity or protocol.
+                    </Alert>
+                  )}
+
                   {/* Output Tokens */}
                   <Box sx={{ mb: 2.5, mt: 2.5 }}>
                     <Typography
@@ -553,7 +599,7 @@ export default function MintTokens() {
                           color="text.primary"
                           sx={{ fontWeight: "bold" }}
                         >
-                          {netAmount || "0"}
+                          {formatDisplay(itDisplayAmount)}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -621,7 +667,7 @@ export default function MintTokens() {
                           color="text.primary"
                           sx={{ fontWeight: "bold" }}
                         >
-                          {netAmount || "0"}
+                          {formatDisplay(ptDisplayAmount)}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -693,7 +739,26 @@ export default function MintTokens() {
                         </Typography>
                       </Box>
                       <Typography variant="body2" color="text.primary">
-                        {netAmount} tokens each
+                        IT: {formatDisplay(itDisplayAmount)} · PT:{" "}
+                        {formatDisplay(ptDisplayAmount)}
+                      </Typography>
+                    </Box>
+                    <Box sx={mintStyles.feeInfoStyles}>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Impairment factor
+                        </Typography>
+                      </Box>
+                      <Typography
+                        variant="body2"
+                        color={isDrained ? "error" : "text.primary"}
+                        sx={{ fontWeight: isDrained ? 600 : 400 }}
+                      >
+                        {isDrained
+                          ? "DRAINED"
+                          : `${formatDisplay(impairmentFactor)}x`}
                       </Typography>
                     </Box>
 
@@ -730,11 +795,14 @@ export default function MintTokens() {
                         parseFloat(state.inputAmount) <= 0 ||
                         isMinting ||
                         state.isProcessing ||
-                        selectedDays <= 0
+                        selectedDays <= 0 ||
+                        isDrained
                       }
                       sx={mintStyles.connectButtonStyles}
                     >
-                      {isMinting || state.isProcessing ? (
+                      {isDrained ? (
+                        "Fund Drained - Minting Disabled"
+                      ) : isMinting || state.isProcessing ? (
                         <>
                           <CircularProgress size={20} sx={{ mr: 1 }} />
                           {!hasAllowance

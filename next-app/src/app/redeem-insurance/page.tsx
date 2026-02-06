@@ -9,6 +9,8 @@ import { useUpdateClaim } from "@/hooks/useUpdateClaim";
 import { usePendingClaims } from "@/hooks/usePendingClaims";
 import { useAllProcessedClaims } from "@/hooks/useAllProcessedClaims";
 import { useApproveClaim, useRejectClaim } from "@/hooks/useClaimManager";
+import { useClaimInsurancePayout } from "@/hooks/useClaimInsurancePayout";
+import { USDC_ADDRESS, USDT_ADDRESS } from "@/constants";
 import {
   Box,
   Container,
@@ -38,6 +40,7 @@ import {
   IconButton,
   Tooltip,
   Snackbar,
+  MenuItem,
 } from "@mui/material";
 import {
   Assignment,
@@ -62,6 +65,7 @@ interface Claim {
   details: string;
   attachmentURI: string;
   status: number;
+  claimant?: string;
 }
 
 export default function RedeemITPage() {
@@ -77,8 +81,11 @@ export default function RedeemITPage() {
     refetch: refetchClaims,
   } = useUserClaims();
   const { claims: pendingClaims, loading: pendingLoading } = usePendingClaims();
-  const { claims: allProcessedClaims, loading: processedLoading } =
-    useAllProcessedClaims();
+  const {
+    claims: allProcessedClaims,
+    loading: processedLoading,
+    refetch: refetchProcessedClaims,
+  } = useAllProcessedClaims();
 
   const [selectedProtocol, setSelectedProtocol] = useState<string | null>(null);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
@@ -132,34 +139,43 @@ export default function RedeemITPage() {
         </Alert>
       ) : (
         <>
-          <Tabs
-            value={currentTab}
-            onChange={(_, newValue) => setCurrentTab(newValue)}
-            sx={{ mb: 3 }}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 3,
+            }}
           >
-            <Tab
-              label="My Insurance Tokens"
-              icon={<Assignment />}
-              iconPosition="start"
-            />
-            <Tab
-              label="My Claims"
-              icon={<Description />}
-              iconPosition="start"
-            />
-            <Tab
-              label="Processed Claims"
-              icon={<CheckCircle />}
-              iconPosition="start"
-            />
-            {isSuperadmin && (
+            <Tabs
+              value={currentTab}
+              onChange={(_, newValue) => setCurrentTab(newValue)}
+              sx={{ flexGrow: 1 }}
+            >
               <Tab
-                label="All Pending Claims"
-                icon={<Pending />}
+                label="My Insurance Tokens"
+                icon={<Assignment />}
                 iconPosition="start"
               />
-            )}
-          </Tabs>
+              <Tab
+                label="My Claims"
+                icon={<Description />}
+                iconPosition="start"
+              />
+              <Tab
+                label="Processed Claims"
+                icon={<CheckCircle />}
+                iconPosition="start"
+              />
+              {isSuperadmin && (
+                <Tab
+                  label="All Pending Claims"
+                  icon={<Pending />}
+                  iconPosition="start"
+                />
+              )}
+            </Tabs>
+          </Box>
 
           {/* Tab 0: Insurance Tokens */}
           {currentTab === 0 && (
@@ -238,6 +254,9 @@ export default function RedeemITPage() {
           {/* Tab 2: Processed Claims */}
           {currentTab === 2 && (
             <ClaimsTable
+              key={`processed-claims-${allProcessedClaims
+                .map((c) => `${c.claimId}-${c.status}`)
+                .join(",")}`}
               claims={
                 isSuperadmin
                   ? allProcessedClaims
@@ -325,16 +344,21 @@ export default function RedeemITPage() {
           isSuperadmin={isSuperadmin}
           onClaimApproved={async () => {
             handleShowSnackbar("Claim approved successfully!", "success");
-            await refetchClaims();
+            await Promise.all([refetchClaims(), refetchProcessedClaims()]);
             setViewDialogOpen(false);
             setSelectedClaim(null);
             setCurrentTab(2); // Switch to Processed Claims tab
           }}
           onClaimRejected={async () => {
             handleShowSnackbar("Claim rejected successfully!", "success");
-            await refetchClaims();
+            await Promise.all([refetchClaims(), refetchProcessedClaims()]);
             setViewDialogOpen(false);
             setSelectedClaim(null);
+            setCurrentTab(2); // Switch to Processed Claims tab
+          }}
+          onPayoutClaimed={async () => {
+            handleShowSnackbar("Payout claimed successfully!", "success");
+            await Promise.all([refetchClaims(), refetchProcessedClaims()]);
             setCurrentTab(2); // Switch to Processed Claims tab
           }}
         />
@@ -732,6 +756,7 @@ interface ViewClaimDialogProps {
   isSuperadmin?: boolean;
   onClaimApproved?: () => void;
   onClaimRejected?: () => void;
+  onPayoutClaimed?: () => void;
 }
 function ViewClaimDialog({
   open,
@@ -740,14 +765,19 @@ function ViewClaimDialog({
   isSuperadmin = false,
   onClaimApproved,
   onClaimRejected,
+  onPayoutClaimed,
 }: ViewClaimDialogProps) {
+  const { address } = useAccount();
   const { approveClaim, isApproving } = useApproveClaim();
   const { rejectClaim, isRejecting } = useRejectClaim();
+  const { claimInsurancePayout, isClaiming } = useClaimInsurancePayout();
   const [approvalNotes, setApprovalNotes] = useState("");
   const [showApprovalForm, setShowApprovalForm] = useState(false);
   const [approvalAction, setApprovalAction] = useState<
     "approve" | "reject" | null
   >(null);
+  const [payoutError, setPayoutError] = useState("");
+  const [payoutToken, setPayoutToken] = useState<"USDC" | "USDT">("USDT");
 
   const handleApproveClick = () => {
     setApprovalAction("approve");
@@ -764,7 +794,9 @@ function ViewClaimDialog({
 
     try {
       if (approvalAction === "approve") {
+        console.log("Approving claim:", claim.claimId);
         await approveClaim(claim.claimId, approvalNotes);
+        console.log("Claim approved successfully");
         setApprovalNotes("");
         setShowApprovalForm(false);
         setApprovalAction(null);
@@ -780,6 +812,7 @@ function ViewClaimDialog({
       }
     } catch (error) {
       console.error("Error submitting approval:", error);
+      throw error;
     }
   };
 
@@ -789,13 +822,34 @@ function ViewClaimDialog({
     setApprovalNotes("");
   };
 
+  const canClaimPayout =
+    claim.status === 3 &&
+    !!address &&
+    !!claim.claimant &&
+    address.toLowerCase() === claim.claimant.toLowerCase();
+
+  const handleClaimPayout = async () => {
+    setPayoutError("");
+    try {
+      const preferredStablecoin =
+        payoutToken === "USDT" ? USDT_ADDRESS : USDC_ADDRESS;
+      await claimInsurancePayout(claim.claimId, preferredStablecoin);
+      onPayoutClaimed?.();
+      onClose();
+    } catch (error) {
+      setPayoutError(
+        error instanceof Error ? error.message : "Failed to claim payout",
+      );
+    }
+  };
+
   const getStatusText = (status: number) => {
-    const statuses = ["Pending", "Approved", "Rejected", "Settled"];
+    const statuses = ["Pending", "Approved", "Rejected", "Settled", "Claimed"];
     return statuses[status] || "Unknown";
   };
 
   const getStatusColor = (status: number) => {
-    const colors = ["warning", "success", "error", "info"] as const;
+    const colors = ["warning", "success", "error", "info", "success"] as const;
     return colors[status] || "default";
   };
 
@@ -890,11 +944,14 @@ function ViewClaimDialog({
               Breach Date
             </Typography>
             <Typography variant="body1">
-              {new Date(claim.hackDate * 1000).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+              {new Date(Number(claim.hackDate) * 1000).toLocaleDateString(
+                "en-US",
+                {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                },
+              )}
             </Typography>
           </Box>
 
@@ -903,7 +960,7 @@ function ViewClaimDialog({
               Submitted On
             </Typography>
             <Typography variant="body1">
-              {new Date(claim.submissionTime * 1000).toLocaleDateString(
+              {new Date(Number(claim.submissionTime) * 1000).toLocaleDateString(
                 "en-US",
                 {
                   year: "numeric",
@@ -929,7 +986,58 @@ function ViewClaimDialog({
             </Paper>
           </Box>
 
-          {allAttachments.length > 0 && (
+          {canClaimPayout && (
+            <Box>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
+                Claim Insurance Payout
+              </Typography>
+              {payoutError && <Alert severity="error">{payoutError}</Alert>}
+              <Stack spacing={2}>
+                <TextField
+                  label="Payout Amount (USD)"
+                  value={parseFloat(claim.hackAmount).toLocaleString()}
+                  disabled
+                  fullWidth
+                />
+                <TextField
+                  select
+                  label="Payout Token"
+                  value={payoutToken}
+                  onChange={(e) =>
+                    setPayoutToken(e.target.value as "USDC" | "USDT")
+                  }
+                  disabled={isClaiming}
+                  fullWidth
+                >
+                  <MenuItem value="USDC">USDC</MenuItem>
+                  <MenuItem value="USDT">USDT</MenuItem>
+                </TextField>
+                <Button
+                  variant="contained"
+                  onClick={handleClaimPayout}
+                  disabled={isClaiming}
+                >
+                  {isClaiming ? "Claiming..." : "Claim Payout"}
+                </Button>
+              </Stack>
+            </Box>
+          )}
+
+          {claim.status === 4 && (
+            <Box>
+              <Alert severity="success" sx={{ mt: 2 }}>
+                Payout Claimed Successfully! You have received $
+                {parseFloat(claim.hackAmount).toLocaleString()} in {payoutToken}
+                .
+              </Alert>
+            </Box>
+          )}
+
+          {claim.attachmentURI && claim.attachmentURI.length > 0 && (
             <Box>
               <Typography
                 variant="subtitle2"
@@ -1073,7 +1181,7 @@ function EditClaimDialog({
   // Initialize with existing claim data
   const [hackAmount, setHackAmount] = useState(claim.hackAmount);
   const [hackDate, setHackDate] = useState(() => {
-    const date = new Date(claim.hackDate * 1000);
+    const date = new Date(Number(claim.hackDate) * 1000);
     return date.toISOString().split("T")[0];
   });
   const [details, setDetails] = useState(claim.details || "");
@@ -1455,6 +1563,11 @@ function ClaimsTable({
         color: "info" as const,
         icon: <CheckCircle fontSize="small" />,
       },
+      {
+        label: "Claimed",
+        color: "success" as const,
+        icon: <CheckCircle fontSize="small" />,
+      },
     ];
     const statusInfo = statuses[status] || statuses[0];
     return (
@@ -1501,7 +1614,9 @@ function ClaimsTable({
                 ${parseFloat(claim.hackAmount).toLocaleString()}
               </TableCell>
               <TableCell>
-                {new Date(claim.submissionTime * 1000).toLocaleDateString()}
+                {new Date(
+                  Number(claim.submissionTime) * 1000,
+                ).toLocaleDateString()}
               </TableCell>
               <TableCell>{getStatusChip(claim.status)}</TableCell>
               <TableCell>

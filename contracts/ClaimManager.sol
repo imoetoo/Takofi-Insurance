@@ -23,7 +23,8 @@ contract ClaimManager {
         Pending,     // Awaiting superadmin review
         Approved,    // Approved by superadmin, settlement can proceed
         Rejected,    // Rejected by superadmin
-        Settled      // Claim has been settled/paid out
+        Settled,     // Claim has been settled/paid out
+        Claimed      // User has claimed their payout
     }
     
     struct Claim {
@@ -197,7 +198,7 @@ contract ClaimManager {
     }
     
     /**
-     * @notice Superadmin approves a claim
+     * @notice Superadmin approves a claim and immediately finalizes it (settles the maturity)
      * @param claimId ID of the claim to approve
      * @param notes Notes from superadmin
      */
@@ -210,8 +211,30 @@ contract ClaimManager {
         claim.status = ClaimStatus.Approved;
         claim.superadminNotes = notes;
         claim.reviewTime = block.timestamp;
+
+        // Apply impairment immediately upon approval
+        protocolInsurance.applyImpairment(
+            claim.protocolId,
+            claim.maturityIndex,
+            claim.hackAmount
+        );
         
         emit ClaimStatusChanged(claimId, oldStatus, ClaimStatus.Approved, notes);
+        
+        // Immediately finalize/settle the claim (condensed into one step)
+        protocolInsurance.settleMaturity(
+            claim.protocolId,
+            claim.maturityIndex,
+            true,  // breach occurred
+            claim.hackAmount
+        );
+        
+        claim.status = ClaimStatus.Settled;
+        
+        // Remove active claim for protocol
+        activeClaimForProtocol[claim.protocolId] = 0;
+        
+        emit ClaimSettled(claimId, claim.protocolId, claim.maturityIndex);
     }
     
     /**
@@ -258,6 +281,29 @@ contract ClaimManager {
         activeClaimForProtocol[claim.protocolId] = 0;
         
         emit ClaimSettled(claimId, claim.protocolId, claim.maturityIndex);
+    }
+
+    /**
+     * @notice Claim approved insurance payout (only by original claimant)
+     * @param claimId ID of the claim to claim payout for
+     * @param preferredStablecoin Preferred payout token (USDT or USDC)
+     */
+    function claimInsurancePayout(uint256 claimId, address preferredStablecoin) external {
+        Claim storage claim = claims[claimId];
+        require(claim.claimId != 0, "Claim does not exist");
+        require(claim.claimant == msg.sender, "Only claim submitter can claim");
+        require(claim.status == ClaimStatus.Settled, "Claim not settled");
+
+        protocolInsurance.claimInsurancePayout(
+            msg.sender,
+            claim.protocolId,
+            claim.maturityIndex,
+            claim.hackAmount,
+            preferredStablecoin
+        );
+        
+        // Mark claim as claimed
+        claim.status = ClaimStatus.Claimed;
     }
     
     // ========== VIEW FUNCTIONS ==========
@@ -327,6 +373,32 @@ contract ClaimManager {
         }
         
         return pendingClaims;
+    }
+    
+    /**
+     * @notice Get all processed claims (for superadmin)
+     */
+    function getAllProcessedClaims() external view returns (uint256[] memory) {
+        uint256 processedCount = 0;
+        
+        // First pass: count processed claims (status != Pending)
+        for (uint256 i = 1; i <= claimCounter; i++) {
+            if (claims[i].status != ClaimStatus.Pending) {
+                processedCount++;
+            }
+        }
+        
+        // Second pass: populate array
+        uint256[] memory processedClaims = new uint256[](processedCount);
+        uint256 index = 0;
+        for (uint256 i = 1; i <= claimCounter; i++) {
+            if (claims[i].status != ClaimStatus.Pending) {
+                processedClaims[index] = i;
+                index++;
+            }
+        }
+        
+        return processedClaims;
     }
     
     // ========== INTERNAL FUNCTIONS ==========

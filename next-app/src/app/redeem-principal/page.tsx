@@ -28,6 +28,7 @@ import {
   useRedeemPrincipalTokens,
   useIsMaturityExpired,
 } from "@/hooks/useTokenMinting";
+import { useImpairmentFactor } from "@/hooks/useImpairmentFactor";
 import { MATURITY_6M, MATURITY_12M } from "@/constants";
 
 interface RedeemableToken {
@@ -39,6 +40,7 @@ interface RedeemableToken {
   breachOccurred: boolean;
   expiryTime: bigint;
   totalITPayout: bigint;
+  impairmentFactor: bigint;
   iconPath: string;
 }
 
@@ -56,9 +58,13 @@ const getProtocolLogo = (title: string): string => {
 
 export default function RedeemPrincipalPage() {
   const { address, isConnected } = useAccount();
-  const [redeemableTokens, setRedeemableTokens] = useState<RedeemableToken[]>([]);
+  const [redeemableTokens, setRedeemableTokens] = useState<RedeemableToken[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedStablecoin, setSelectedStablecoin] = useState<"USDT" | "USDC">("USDT");
+  const [selectedStablecoin, setSelectedStablecoin] = useState<"USDT" | "USDC">(
+    "USDT",
+  );
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -71,16 +77,30 @@ export default function RedeemPrincipalPage() {
   const sushiswap6MPT = useUserPTByMaturity(address, "SushiSwap", MATURITY_6M);
   const sushiswap6MSettlement = useMaturitySettlement("SushiSwap", MATURITY_6M);
   const sushiswap6MExpired = useIsMaturityExpired("SushiSwap", MATURITY_6M);
-  const sushiswap12MPT = useUserPTByMaturity(address, "SushiSwap", MATURITY_12M);
-  const sushiswap12MSettlement = useMaturitySettlement("SushiSwap", MATURITY_12M);
+  const sushiswap12MPT = useUserPTByMaturity(
+    address,
+    "SushiSwap",
+    MATURITY_12M,
+  );
+  const sushiswap12MSettlement = useMaturitySettlement(
+    "SushiSwap",
+    MATURITY_12M,
+  );
   const sushiswap12MExpired = useIsMaturityExpired("SushiSwap", MATURITY_12M);
 
   // Curve Finance
   const curve6MPT = useUserPTByMaturity(address, "Curve Finance", MATURITY_6M);
   const curve6MSettlement = useMaturitySettlement("Curve Finance", MATURITY_6M);
   const curve6MExpired = useIsMaturityExpired("Curve Finance", MATURITY_6M);
-  const curve12MPT = useUserPTByMaturity(address, "Curve Finance", MATURITY_12M);
-  const curve12MSettlement = useMaturitySettlement("Curve Finance", MATURITY_12M);
+  const curve12MPT = useUserPTByMaturity(
+    address,
+    "Curve Finance",
+    MATURITY_12M,
+  );
+  const curve12MSettlement = useMaturitySettlement(
+    "Curve Finance",
+    MATURITY_12M,
+  );
   const curve12MExpired = useIsMaturityExpired("Curve Finance", MATURITY_12M);
 
   // Aave
@@ -96,7 +116,10 @@ export default function RedeemPrincipalPage() {
   const uniswap6MSettlement = useMaturitySettlement("Uniswap V3", MATURITY_6M);
   const uniswap6MExpired = useIsMaturityExpired("Uniswap V3", MATURITY_6M);
   const uniswap12MPT = useUserPTByMaturity(address, "Uniswap V3", MATURITY_12M);
-  const uniswap12MSettlement = useMaturitySettlement("Uniswap V3", MATURITY_12M);
+  const uniswap12MSettlement = useMaturitySettlement(
+    "Uniswap V3",
+    MATURITY_12M,
+  );
   const uniswap12MExpired = useIsMaturityExpired("Uniswap V3", MATURITY_12M);
 
   // Compound
@@ -108,12 +131,49 @@ export default function RedeemPrincipalPage() {
   const compound12MExpired = useIsMaturityExpired("Compound", MATURITY_12M);
 
   // PancakeSwap
-  const pancakeswap6MPT = useUserPTByMaturity(address, "PancakeSwap", MATURITY_6M);
-  const pancakeswap6MSettlement = useMaturitySettlement("PancakeSwap", MATURITY_6M);
+  const pancakeswap6MPT = useUserPTByMaturity(
+    address,
+    "PancakeSwap",
+    MATURITY_6M,
+  );
+  const pancakeswap6MSettlement = useMaturitySettlement(
+    "PancakeSwap",
+    MATURITY_6M,
+  );
   const pancakeswap6MExpired = useIsMaturityExpired("PancakeSwap", MATURITY_6M);
-  const pancakeswap12MPT = useUserPTByMaturity(address, "PancakeSwap", MATURITY_12M);
-  const pancakeswap12MSettlement = useMaturitySettlement("PancakeSwap", MATURITY_12M);
-  const pancakeswap12MExpired = useIsMaturityExpired("PancakeSwap", MATURITY_12M);
+  const pancakeswap12MPT = useUserPTByMaturity(
+    address,
+    "PancakeSwap",
+    MATURITY_12M,
+  );
+  const pancakeswap12MSettlement = useMaturitySettlement(
+    "PancakeSwap",
+    MATURITY_12M,
+  );
+  const pancakeswap12MExpired = useIsMaturityExpired(
+    "PancakeSwap",
+    MATURITY_12M,
+  );
+
+  // Impairment factors
+  const sushiswap6MImpairment = useImpairmentFactor("SushiSwap", MATURITY_6M);
+  const sushiswap12MImpairment = useImpairmentFactor("SushiSwap", MATURITY_12M);
+  const curve6MImpairment = useImpairmentFactor("Curve Finance", MATURITY_6M);
+  const curve12MImpairment = useImpairmentFactor("Curve Finance", MATURITY_12M);
+  const aave6MImpairment = useImpairmentFactor("Aave", MATURITY_6M);
+  const aave12MImpairment = useImpairmentFactor("Aave", MATURITY_12M);
+  const uniswap6MImpairment = useImpairmentFactor("Uniswap V3", MATURITY_6M);
+  const uniswap12MImpairment = useImpairmentFactor("Uniswap V3", MATURITY_12M);
+  const compound6MImpairment = useImpairmentFactor("Compound", MATURITY_6M);
+  const compound12MImpairment = useImpairmentFactor("Compound", MATURITY_12M);
+  const pancakeswap6MImpairment = useImpairmentFactor(
+    "PancakeSwap",
+    MATURITY_6M,
+  );
+  const pancakeswap12MImpairment = useImpairmentFactor(
+    "PancakeSwap",
+    MATURITY_12M,
+  );
 
   // Process token data
   useEffect(() => {
@@ -125,23 +185,120 @@ export default function RedeemPrincipalPage() {
 
     // Organize hook results into structured data (inside useEffect to avoid recreation on every render)
     const tokenData = [
-      { protocol: "SushiSwap", maturity: "6M", maturityIndex: MATURITY_6M, ptBalance: sushiswap6MPT, settlement: sushiswap6MSettlement, isExpired: sushiswap6MExpired },
-      { protocol: "SushiSwap", maturity: "12M", maturityIndex: MATURITY_12M, ptBalance: sushiswap12MPT, settlement: sushiswap12MSettlement, isExpired: sushiswap12MExpired },
-      { protocol: "Curve Finance", maturity: "6M", maturityIndex: MATURITY_6M, ptBalance: curve6MPT, settlement: curve6MSettlement, isExpired: curve6MExpired },
-      { protocol: "Curve Finance", maturity: "12M", maturityIndex: MATURITY_12M, ptBalance: curve12MPT, settlement: curve12MSettlement, isExpired: curve12MExpired },
-      { protocol: "Aave", maturity: "6M", maturityIndex: MATURITY_6M, ptBalance: aave6MPT, settlement: aave6MSettlement, isExpired: aave6MExpired },
-      { protocol: "Aave", maturity: "12M", maturityIndex: MATURITY_12M, ptBalance: aave12MPT, settlement: aave12MSettlement, isExpired: aave12MExpired },
-      { protocol: "Uniswap V3", maturity: "6M", maturityIndex: MATURITY_6M, ptBalance: uniswap6MPT, settlement: uniswap6MSettlement, isExpired: uniswap6MExpired },
-      { protocol: "Uniswap V3", maturity: "12M", maturityIndex: MATURITY_12M, ptBalance: uniswap12MPT, settlement: uniswap12MSettlement, isExpired: uniswap12MExpired },
-      { protocol: "Compound", maturity: "6M", maturityIndex: MATURITY_6M, ptBalance: compound6MPT, settlement: compound6MSettlement, isExpired: compound6MExpired },
-      { protocol: "Compound", maturity: "12M", maturityIndex: MATURITY_12M, ptBalance: compound12MPT, settlement: compound12MSettlement, isExpired: compound12MExpired },
-      { protocol: "PancakeSwap", maturity: "6M", maturityIndex: MATURITY_6M, ptBalance: pancakeswap6MPT, settlement: pancakeswap6MSettlement, isExpired: pancakeswap6MExpired },
-      { protocol: "PancakeSwap", maturity: "12M", maturityIndex: MATURITY_12M, ptBalance: pancakeswap12MPT, settlement: pancakeswap12MSettlement, isExpired: pancakeswap12MExpired },
+      {
+        protocol: "SushiSwap",
+        maturity: "6M",
+        maturityIndex: MATURITY_6M,
+        ptBalance: sushiswap6MPT,
+        settlement: sushiswap6MSettlement,
+        isExpired: sushiswap6MExpired,
+        impairment: sushiswap6MImpairment,
+      },
+      {
+        protocol: "SushiSwap",
+        maturity: "12M",
+        maturityIndex: MATURITY_12M,
+        ptBalance: sushiswap12MPT,
+        settlement: sushiswap12MSettlement,
+        isExpired: sushiswap12MExpired,
+        impairment: sushiswap12MImpairment,
+      },
+      {
+        protocol: "Curve Finance",
+        maturity: "6M",
+        maturityIndex: MATURITY_6M,
+        ptBalance: curve6MPT,
+        settlement: curve6MSettlement,
+        isExpired: curve6MExpired,
+        impairment: curve6MImpairment,
+      },
+      {
+        protocol: "Curve Finance",
+        maturity: "12M",
+        maturityIndex: MATURITY_12M,
+        ptBalance: curve12MPT,
+        settlement: curve12MSettlement,
+        isExpired: curve12MExpired,
+        impairment: curve12MImpairment,
+      },
+      {
+        protocol: "Aave",
+        maturity: "6M",
+        maturityIndex: MATURITY_6M,
+        ptBalance: aave6MPT,
+        settlement: aave6MSettlement,
+        isExpired: aave6MExpired,
+        impairment: aave6MImpairment,
+      },
+      {
+        protocol: "Aave",
+        maturity: "12M",
+        maturityIndex: MATURITY_12M,
+        ptBalance: aave12MPT,
+        settlement: aave12MSettlement,
+        isExpired: aave12MExpired,
+        impairment: aave12MImpairment,
+      },
+      {
+        protocol: "Uniswap V3",
+        maturity: "6M",
+        maturityIndex: MATURITY_6M,
+        ptBalance: uniswap6MPT,
+        settlement: uniswap6MSettlement,
+        isExpired: uniswap6MExpired,
+        impairment: uniswap6MImpairment,
+      },
+      {
+        protocol: "Uniswap V3",
+        maturity: "12M",
+        maturityIndex: MATURITY_12M,
+        ptBalance: uniswap12MPT,
+        settlement: uniswap12MSettlement,
+        isExpired: uniswap12MExpired,
+        impairment: uniswap12MImpairment,
+      },
+      {
+        protocol: "Compound",
+        maturity: "6M",
+        maturityIndex: MATURITY_6M,
+        ptBalance: compound6MPT,
+        settlement: compound6MSettlement,
+        isExpired: compound6MExpired,
+        impairment: compound6MImpairment,
+      },
+      {
+        protocol: "Compound",
+        maturity: "12M",
+        maturityIndex: MATURITY_12M,
+        ptBalance: compound12MPT,
+        settlement: compound12MSettlement,
+        isExpired: compound12MExpired,
+        impairment: compound12MImpairment,
+      },
+      {
+        protocol: "PancakeSwap",
+        maturity: "6M",
+        maturityIndex: MATURITY_6M,
+        ptBalance: pancakeswap6MPT,
+        settlement: pancakeswap6MSettlement,
+        isExpired: pancakeswap6MExpired,
+        impairment: pancakeswap6MImpairment,
+      },
+      {
+        protocol: "PancakeSwap",
+        maturity: "12M",
+        maturityIndex: MATURITY_12M,
+        ptBalance: pancakeswap12MPT,
+        settlement: pancakeswap12MSettlement,
+        isExpired: pancakeswap12MExpired,
+        impairment: pancakeswap12MImpairment,
+      },
     ];
 
     // Check if any data is still loading
-    const anyLoading = tokenData.some(({ ptBalance, settlement }) => 
-      ptBalance.isLoading || settlement.isLoading
+    const anyLoading = tokenData.some(
+      ({ ptBalance, settlement, impairment }) =>
+        ptBalance.isLoading || settlement.isLoading || impairment.isLoading,
     );
 
     if (anyLoading) {
@@ -151,14 +308,25 @@ export default function RedeemPrincipalPage() {
 
     const tokens: RedeemableToken[] = [];
 
-    tokenData.forEach(({ protocol, maturity, maturityIndex, ptBalance, settlement, isExpired }) => {
+    tokenData.forEach(
+      ({
+        protocol,
+        maturity,
+        maturityIndex,
+        ptBalance,
+        settlement,
+        isExpired,
+        impairment,
+      }) => {
         if (
           ptBalance.data &&
           ptBalance.data > BigInt(0) &&
           settlement.data &&
           isExpired.data !== undefined
         ) {
-        const { expiryTime, isSettled, breachOccurred, totalITPayout } = settlement.data;
+          const { expiryTime, isSettled, breachOccurred, totalITPayout } =
+            settlement.data;
+          const impairmentFactor = impairment.data ?? BigInt(1e18);
 
           // Show tokens that are past maturity date (using blockchain time):
           // 1. Already settled (regardless of breach) - can redeem at calculated value
@@ -176,11 +344,13 @@ export default function RedeemPrincipalPage() {
               breachOccurred,
               expiryTime,
               totalITPayout,
+              impairmentFactor,
               iconPath: getProtocolLogo(protocol),
             });
           }
         }
-    });
+      },
+    );
 
     setRedeemableTokens(tokens);
     setIsLoading(false);
@@ -224,6 +394,18 @@ export default function RedeemPrincipalPage() {
     pancakeswap12MPT,
     pancakeswap12MSettlement,
     pancakeswap12MExpired,
+    sushiswap6MImpairment,
+    sushiswap12MImpairment,
+    curve6MImpairment,
+    curve12MImpairment,
+    aave6MImpairment,
+    aave12MImpairment,
+    uniswap6MImpairment,
+    uniswap12MImpairment,
+    compound6MImpairment,
+    compound12MImpairment,
+    pancakeswap6MImpairment,
+    pancakeswap12MImpairment,
   ]);
 
   const handleRedeem = async (token: RedeemableToken) => {
@@ -234,7 +416,11 @@ export default function RedeemPrincipalPage() {
 
     try {
       setSuccess("Redeeming Principal Tokens...");
-      const hash = await redeemPT(token.protocol, token.maturityIndex, token.ptBalance);
+      const hash = await redeemPT(
+        token.protocol,
+        token.maturityIndex,
+        token.ptBalance,
+      );
       setSuccess(`Successfully redeemed! Transaction: ${hash}`);
 
       // Refresh the page after a delay
@@ -251,18 +437,11 @@ export default function RedeemPrincipalPage() {
   };
 
   const calculateRedemptionValue = (token: RedeemableToken): string => {
-    // PT value per token = (Total Deposited - IT Payout) / Total PT
-    // For simplicity, assuming 1:1 if no breach, or showing reduced value
     const ptBalanceInUSDT = Number(formatUnits(token.ptBalance, 18));
-
-    if (!token.breachOccurred || token.totalITPayout === BigInt(0)) {
-      return ptBalanceInUSDT.toFixed(2);
-    }
-
-    // This is a simplified calculation - actual value depends on totalDeposited
-    const payoutAmount = Number(formatUnits(token.totalITPayout, 6));
-    const estimatedValue = ptBalanceInUSDT * (1 - payoutAmount / 1000000); // Rough estimate
-    return estimatedValue.toFixed(2);
+    const impairment = Number(formatUnits(token.impairmentFactor, 18));
+    const redemptionValue =
+      ptBalanceInUSDT * (Number.isFinite(impairment) ? impairment : 1);
+    return redemptionValue.toFixed(2);
   };
 
   if (!isConnected) {
@@ -301,7 +480,7 @@ export default function RedeemPrincipalPage() {
           </Typography>
           <Button
             variant="outlined"
-            onClick={() => setRefreshKey(k => k + 1)}
+            onClick={() => setRefreshKey((k) => k + 1)}
             sx={{ mt: 2 }}
           >
             🔄 Refresh Tokens
@@ -315,7 +494,11 @@ export default function RedeemPrincipalPage() {
           </Alert>
         )}
         {success && (
-          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess("")}>
+          <Alert
+            severity="success"
+            sx={{ mb: 2 }}
+            onClose={() => setSuccess("")}
+          >
             {success}
           </Alert>
         )}
@@ -328,7 +511,9 @@ export default function RedeemPrincipalPage() {
               <Select
                 value={selectedStablecoin}
                 label="Preferred Stablecoin"
-                onChange={(e) => setSelectedStablecoin(e.target.value as "USDT" | "USDC")}
+                onChange={(e) =>
+                  setSelectedStablecoin(e.target.value as "USDT" | "USDC")
+                }
               >
                 <MenuItem value="USDT">USDT</MenuItem>
                 <MenuItem value="USDC">USDC</MenuItem>
@@ -372,7 +557,14 @@ export default function RedeemPrincipalPage() {
 
                     {/* Token Info */}
                     <Box sx={{ flex: 1 }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                          mb: 1,
+                        }}
+                      >
                         <Typography
                           variant="h6"
                           sx={{ fontWeight: "bold", color: "text.primary" }}
@@ -399,18 +591,33 @@ export default function RedeemPrincipalPage() {
                         )}
                       </Box>
 
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mb: 1 }}
+                      >
                         PT Balance: {formatUnits(token.ptBalance, 18)} PT
                       </Typography>
 
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mb: 1 }}
+                      >
+                        Impairment Factor:{" "}
+                        {formatUnits(token.impairmentFactor, 18)}x
+                      </Typography>
+
                       <Typography variant="body2" color="text.secondary">
-                        Redemption Amount: {calculateRedemptionValue(token)} {selectedStablecoin}
+                        Redemption Amount: {calculateRedemptionValue(token)}{" "}
+                        {selectedStablecoin}
                       </Typography>
 
                       {token.breachOccurred && (
                         <Alert severity="warning" sx={{ mt: 2 }}>
                           <Typography variant="body2">
-                            Breach occurred. PT value reduced by insurance payouts.
+                            Breach occurred. PT value reduced by insurance
+                            payouts.
                           </Typography>
                         </Alert>
                       )}
@@ -419,7 +626,11 @@ export default function RedeemPrincipalPage() {
                     {/* Redeem Button */}
                     <Button
                       variant="contained"
-                      disabled={pendingTokenKey === `${token.protocol}-${token.maturityIndex}` || isPending}
+                      disabled={
+                        pendingTokenKey ===
+                          `${token.protocol}-${token.maturityIndex}` ||
+                        isPending
+                      }
                       onClick={() => handleRedeem(token)}
                       sx={{
                         bgcolor: "#3b82f6",
@@ -428,21 +639,28 @@ export default function RedeemPrincipalPage() {
                         minWidth: 120,
                       }}
                     >
-                      {pendingTokenKey === `${token.protocol}-${token.maturityIndex}` ? <CircularProgress size={24} /> : "Redeem PT"}
+                      {pendingTokenKey ===
+                      `${token.protocol}-${token.maturityIndex}` ? (
+                        <CircularProgress size={24} />
+                      ) : (
+                        "Redeem PT"
+                      )}
                     </Button>
                   </Box>
 
                   {!token.isSettled && !token.breachOccurred && (
                     <Alert severity="info" sx={{ mt: 2 }}>
                       <Typography variant="body2">
-                        🎯 Auto-settlement: This will be automatically settled at 1:1 when you redeem.
+                        🎯 Auto-settlement: This will be automatically settled
+                        at 1:1 when you redeem.
                       </Typography>
                     </Alert>
                   )}
                   {!token.isSettled && token.breachOccurred && (
                     <Alert severity="warning" sx={{ mt: 2 }}>
                       <Typography variant="body2">
-                        ⚠️ Breach occurred: Must be manually settled by protocol owner before redemption.
+                        ⚠️ Breach occurred: Must be manually settled by protocol
+                        owner before redemption.
                       </Typography>
                     </Alert>
                   )}
@@ -457,7 +675,8 @@ export default function RedeemPrincipalPage() {
                 No Principal Tokens to Redeem
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                You don&apos;t have any redeemable principal tokens at this time.
+                You don&apos;t have any redeemable principal tokens at this
+                time.
               </Typography>
             </CardContent>
           </Card>

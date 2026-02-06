@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { useReadContracts } from "wagmi";
 import { CLAIM_MANAGER_ADDRESS, CLAIM_MANAGER_ABI } from "@/constants";
-
+import { getProtocolNameFromId } from "@/utils/protocolUtils";
+import { formatUnits } from "viem";
 export interface ProcessedClaim {
   claimId: number;
   protocolName: string;
@@ -26,7 +27,7 @@ export function useAllProcessedClaims() {
       {
         address: CLAIM_MANAGER_ADDRESS,
         abi: CLAIM_MANAGER_ABI,
-        functionName: "getAllPendingClaims",
+        functionName: "getAllProcessedClaims",
         args: [],
       },
     ],
@@ -47,8 +48,6 @@ export function useAllProcessedClaims() {
     return result as bigint[];
   }, [allClaimIdsData]);
 
-  // Note: We use getAllPendingClaims as a starting point, but we'll need to fetch all claims
-  // For now, we'll fetch details for all IDs we can get
   const claimDetailContracts = useMemo(() => {
     if (!allClaimIds || allClaimIds.length === 0) return [];
 
@@ -60,13 +59,16 @@ export function useAllProcessedClaims() {
     }));
   }, [allClaimIds]);
 
-  const { data: claimDetailsData, isLoading: claimDetailsLoading } =
-    useReadContracts({
-      contracts: claimDetailContracts,
-      query: {
-        enabled: claimDetailContracts.length > 0,
-      },
-    });
+  const {
+    data: claimDetailsData,
+    isLoading: claimDetailsLoading,
+    refetch: refetchClaimDetails,
+  } = useReadContracts({
+    contracts: claimDetailContracts,
+    query: {
+      enabled: claimDetailContracts.length > 0,
+    },
+  });
 
   const processedClaims = useMemo(() => {
     if (!claimDetailsData || claimDetailsData.length === 0) {
@@ -81,46 +83,48 @@ export function useAllProcessedClaims() {
       }
 
       const result = claimData.result as [
-        number, // claimId
-        string, // protocolId (but we don't use it)
-        bigint, // hackAmount
-        number, // hackDate
-        number, // submissionTime
-        string, // claimant
-        number, // maturityIndex
-        string, // details
-        string, // attachmentURI
-        number, // status
-        string, // superadminNotes
-        number, // reviewTime
+        bigint, // 0: claimId
+        string, // 1: protocolId
+        bigint, // 2: maturityIndex
+        bigint, // 3: hackAmount
+        bigint, // 4: hackDate
+        string, // 5: claimant
+        bigint, // 6: submissionTime
+        string, // 7: details
+        string, // 8: attachmentURI
+        number, // 9: status
+        string, // 10: superadminNotes
+        bigint, // 11: reviewTime
       ];
       const claimId = Number(allClaimIds[index]);
-      const status = result[9]; // status is at index 9
+      const status = result[9];
 
-      // Only include processed claims (status !== 0 which is Pending)
-      if (status !== 0) {
-        claims.push({
-          claimId,
-          protocolName: result[1] || "Unknown",
-          hackAmount: String(result[2] || 0),
-          hackDate: result[3] || 0,
-          submissionTime: result[4] || 0,
-          details: result[7] || "",
-          attachmentURI: result[8] || "",
-          status,
-          claimant: result[5] || "",
-          superadminNotes: result[10] || "",
-          reviewTime: result[11] || 0,
-        });
-      }
+      claims.push({
+        claimId,
+        protocolName: getProtocolNameFromId(result[1]),
+        hackAmount: formatUnits(result[3] || 0n, 6), // Format as USDT (6 decimals)
+        hackDate: Number(result[4]) || 0,
+        submissionTime: Number(result[6]) || 0,
+        details: result[7] || "",
+        attachmentURI: result[8] || "",
+        status,
+        claimant: result[5] || "",
+        superadminNotes: result[10] || "",
+        reviewTime: Number(result[11]) || 0,
+      });
     });
 
     return claims;
   }, [claimDetailsData, allClaimIds]);
 
+  const refetch = async () => {
+    await refetchAllClaimIds();
+    await refetchClaimDetails();
+  };
+
   return {
     claims: processedClaims,
     loading: allClaimIdsLoading || claimDetailsLoading,
-    refetch: refetchAllClaimIds,
+    refetch,
   };
 }
