@@ -1626,7 +1626,12 @@ function ClaimsTable({
                       size="small"
                       variant="contained"
                       onClick={() => onEditClaim(claim)}
-                      sx={{ textTransform: "none", fontSize: "0.75rem", bgcolor: "#3b82f6", "&:hover": { bgcolor: "#2563eb" } }}
+                      sx={{
+                        textTransform: "none",
+                        fontSize: "0.75rem",
+                        bgcolor: "#3b82f6",
+                        "&:hover": { bgcolor: "#2563eb" },
+                      }}
                     >
                       Edit Claim
                     </Button>
@@ -1635,7 +1640,12 @@ function ClaimsTable({
                     size="small"
                     variant="contained"
                     onClick={() => onViewClaim?.(claim)}
-                    sx={{ textTransform: "none", fontSize: "0.75rem", bgcolor: "#3b82f6", "&:hover": { bgcolor: "#2563eb" } }}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: "0.75rem",
+                      bgcolor: "#3b82f6",
+                      "&:hover": { bgcolor: "#2563eb" },
+                    }}
                   >
                     Claim Details
                   </Button>

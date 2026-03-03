@@ -89,7 +89,10 @@ const saveClaimedTokens = (address: string, tokens: RedeemableToken[]) => {
       isExpired: t.isExpired,
       redeemedAt: Date.now(),
     }));
-    localStorage.setItem(`${CLAIMED_TOKENS_KEY}-${address}`, JSON.stringify(stored));
+    localStorage.setItem(
+      `${CLAIMED_TOKENS_KEY}-${address}`,
+      JSON.stringify(stored),
+    );
   } catch (e) {
     console.error("Failed to save claimed tokens:", e);
   }
@@ -160,8 +163,11 @@ export default function RedeemPrincipalPage() {
   }, [address]);
 
   const [redeemDialogOpen, setRedeemDialogOpen] = useState(false);
-  const [selectedRedeemToken, setSelectedRedeemToken] = useState<RedeemableToken | null>(null);
-  const [selectedStablecoin, setSelectedStablecoin] = useState<"USDT" | "USDC">("USDT");
+  const [selectedRedeemToken, setSelectedRedeemToken] =
+    useState<RedeemableToken | null>(null);
+  const [selectedStablecoin, setSelectedStablecoin] = useState<"USDT" | "USDC">(
+    "USDT",
+  );
 
   const { redeemPT, isPending } = useRedeemPrincipalTokens();
 
@@ -175,8 +181,15 @@ export default function RedeemPrincipalPage() {
   const sushiswap6MSettlement = useMaturitySettlement("SushiSwap", MATURITY_6M);
   const sushiswap6MExpired = useIsMaturityExpired("SushiSwap", MATURITY_6M);
   const sushiswap6MImpairment = useImpairmentFactor("SushiSwap", MATURITY_6M);
-  const sushiswap12MPT = useUserPTByMaturity(address, "SushiSwap", MATURITY_12M);
-  const sushiswap12MSettlement = useMaturitySettlement("SushiSwap", MATURITY_12M);
+  const sushiswap12MPT = useUserPTByMaturity(
+    address,
+    "SushiSwap",
+    MATURITY_12M,
+  );
+  const sushiswap12MSettlement = useMaturitySettlement(
+    "SushiSwap",
+    MATURITY_12M,
+  );
   const sushiswap12MExpired = useIsMaturityExpired("SushiSwap", MATURITY_12M);
   const sushiswap12MImpairment = useImpairmentFactor("SushiSwap", MATURITY_12M);
 
@@ -185,8 +198,15 @@ export default function RedeemPrincipalPage() {
   const curve6MSettlement = useMaturitySettlement("Curve Finance", MATURITY_6M);
   const curve6MExpired = useIsMaturityExpired("Curve Finance", MATURITY_6M);
   const curve6MImpairment = useImpairmentFactor("Curve Finance", MATURITY_6M);
-  const curve12MPT = useUserPTByMaturity(address, "Curve Finance", MATURITY_12M);
-  const curve12MSettlement = useMaturitySettlement("Curve Finance", MATURITY_12M);
+  const curve12MPT = useUserPTByMaturity(
+    address,
+    "Curve Finance",
+    MATURITY_12M,
+  );
+  const curve12MSettlement = useMaturitySettlement(
+    "Curve Finance",
+    MATURITY_12M,
+  );
   const curve12MExpired = useIsMaturityExpired("Curve Finance", MATURITY_12M);
   const curve12MImpairment = useImpairmentFactor("Curve Finance", MATURITY_12M);
 
@@ -206,7 +226,10 @@ export default function RedeemPrincipalPage() {
   const uniswap6MExpired = useIsMaturityExpired("Uniswap V3", MATURITY_6M);
   const uniswap6MImpairment = useImpairmentFactor("Uniswap V3", MATURITY_6M);
   const uniswap12MPT = useUserPTByMaturity(address, "Uniswap V3", MATURITY_12M);
-  const uniswap12MSettlement = useMaturitySettlement("Uniswap V3", MATURITY_12M);
+  const uniswap12MSettlement = useMaturitySettlement(
+    "Uniswap V3",
+    MATURITY_12M,
+  );
   const uniswap12MExpired = useIsMaturityExpired("Uniswap V3", MATURITY_12M);
   const uniswap12MImpairment = useImpairmentFactor("Uniswap V3", MATURITY_12M);
 
@@ -221,29 +244,148 @@ export default function RedeemPrincipalPage() {
   const compound12MImpairment = useImpairmentFactor("Compound", MATURITY_12M);
 
   // PancakeSwap
-  const pancakeswap6MPT = useUserPTByMaturity(address, "PancakeSwap", MATURITY_6M);
-  const pancakeswap6MSettlement = useMaturitySettlement("PancakeSwap", MATURITY_6M);
+  const pancakeswap6MPT = useUserPTByMaturity(
+    address,
+    "PancakeSwap",
+    MATURITY_6M,
+  );
+  const pancakeswap6MSettlement = useMaturitySettlement(
+    "PancakeSwap",
+    MATURITY_6M,
+  );
   const pancakeswap6MExpired = useIsMaturityExpired("PancakeSwap", MATURITY_6M);
-  const pancakeswap6MImpairment = useImpairmentFactor("PancakeSwap", MATURITY_6M);
-  const pancakeswap12MPT = useUserPTByMaturity(address, "PancakeSwap", MATURITY_12M);
-  const pancakeswap12MSettlement = useMaturitySettlement("PancakeSwap", MATURITY_12M);
-  const pancakeswap12MExpired = useIsMaturityExpired("PancakeSwap", MATURITY_12M);
-  const pancakeswap12MImpairment = useImpairmentFactor("PancakeSwap", MATURITY_12M);
+  const pancakeswap6MImpairment = useImpairmentFactor(
+    "PancakeSwap",
+    MATURITY_6M,
+  );
+  const pancakeswap12MPT = useUserPTByMaturity(
+    address,
+    "PancakeSwap",
+    MATURITY_12M,
+  );
+  const pancakeswap12MSettlement = useMaturitySettlement(
+    "PancakeSwap",
+    MATURITY_12M,
+  );
+  const pancakeswap12MExpired = useIsMaturityExpired(
+    "PancakeSwap",
+    MATURITY_12M,
+  );
+  const pancakeswap12MImpairment = useImpairmentFactor(
+    "PancakeSwap",
+    MATURITY_12M,
+  );
 
   // Organize hook results into structured data (outside useEffect so deps work)
   const tokenData = [
-    { protocol: "SushiSwap", maturity: "6M", maturityIndex: MATURITY_6M, ptBalance: sushiswap6MPT, settlement: sushiswap6MSettlement, isExpired: sushiswap6MExpired, impairment: sushiswap6MImpairment },
-    { protocol: "SushiSwap", maturity: "12M", maturityIndex: MATURITY_12M, ptBalance: sushiswap12MPT, settlement: sushiswap12MSettlement, isExpired: sushiswap12MExpired, impairment: sushiswap12MImpairment },
-    { protocol: "Curve Finance", maturity: "6M", maturityIndex: MATURITY_6M, ptBalance: curve6MPT, settlement: curve6MSettlement, isExpired: curve6MExpired, impairment: curve6MImpairment },
-    { protocol: "Curve Finance", maturity: "12M", maturityIndex: MATURITY_12M, ptBalance: curve12MPT, settlement: curve12MSettlement, isExpired: curve12MExpired, impairment: curve12MImpairment },
-    { protocol: "Aave", maturity: "6M", maturityIndex: MATURITY_6M, ptBalance: aave6MPT, settlement: aave6MSettlement, isExpired: aave6MExpired, impairment: aave6MImpairment },
-    { protocol: "Aave", maturity: "12M", maturityIndex: MATURITY_12M, ptBalance: aave12MPT, settlement: aave12MSettlement, isExpired: aave12MExpired, impairment: aave12MImpairment },
-    { protocol: "Uniswap V3", maturity: "6M", maturityIndex: MATURITY_6M, ptBalance: uniswap6MPT, settlement: uniswap6MSettlement, isExpired: uniswap6MExpired, impairment: uniswap6MImpairment },
-    { protocol: "Uniswap V3", maturity: "12M", maturityIndex: MATURITY_12M, ptBalance: uniswap12MPT, settlement: uniswap12MSettlement, isExpired: uniswap12MExpired, impairment: uniswap12MImpairment },
-    { protocol: "Compound", maturity: "6M", maturityIndex: MATURITY_6M, ptBalance: compound6MPT, settlement: compound6MSettlement, isExpired: compound6MExpired, impairment: compound6MImpairment },
-    { protocol: "Compound", maturity: "12M", maturityIndex: MATURITY_12M, ptBalance: compound12MPT, settlement: compound12MSettlement, isExpired: compound12MExpired, impairment: compound12MImpairment },
-    { protocol: "PancakeSwap", maturity: "6M", maturityIndex: MATURITY_6M, ptBalance: pancakeswap6MPT, settlement: pancakeswap6MSettlement, isExpired: pancakeswap6MExpired, impairment: pancakeswap6MImpairment },
-    { protocol: "PancakeSwap", maturity: "12M", maturityIndex: MATURITY_12M, ptBalance: pancakeswap12MPT, settlement: pancakeswap12MSettlement, isExpired: pancakeswap12MExpired, impairment: pancakeswap12MImpairment },
+    {
+      protocol: "SushiSwap",
+      maturity: "6M",
+      maturityIndex: MATURITY_6M,
+      ptBalance: sushiswap6MPT,
+      settlement: sushiswap6MSettlement,
+      isExpired: sushiswap6MExpired,
+      impairment: sushiswap6MImpairment,
+    },
+    {
+      protocol: "SushiSwap",
+      maturity: "12M",
+      maturityIndex: MATURITY_12M,
+      ptBalance: sushiswap12MPT,
+      settlement: sushiswap12MSettlement,
+      isExpired: sushiswap12MExpired,
+      impairment: sushiswap12MImpairment,
+    },
+    {
+      protocol: "Curve Finance",
+      maturity: "6M",
+      maturityIndex: MATURITY_6M,
+      ptBalance: curve6MPT,
+      settlement: curve6MSettlement,
+      isExpired: curve6MExpired,
+      impairment: curve6MImpairment,
+    },
+    {
+      protocol: "Curve Finance",
+      maturity: "12M",
+      maturityIndex: MATURITY_12M,
+      ptBalance: curve12MPT,
+      settlement: curve12MSettlement,
+      isExpired: curve12MExpired,
+      impairment: curve12MImpairment,
+    },
+    {
+      protocol: "Aave",
+      maturity: "6M",
+      maturityIndex: MATURITY_6M,
+      ptBalance: aave6MPT,
+      settlement: aave6MSettlement,
+      isExpired: aave6MExpired,
+      impairment: aave6MImpairment,
+    },
+    {
+      protocol: "Aave",
+      maturity: "12M",
+      maturityIndex: MATURITY_12M,
+      ptBalance: aave12MPT,
+      settlement: aave12MSettlement,
+      isExpired: aave12MExpired,
+      impairment: aave12MImpairment,
+    },
+    {
+      protocol: "Uniswap V3",
+      maturity: "6M",
+      maturityIndex: MATURITY_6M,
+      ptBalance: uniswap6MPT,
+      settlement: uniswap6MSettlement,
+      isExpired: uniswap6MExpired,
+      impairment: uniswap6MImpairment,
+    },
+    {
+      protocol: "Uniswap V3",
+      maturity: "12M",
+      maturityIndex: MATURITY_12M,
+      ptBalance: uniswap12MPT,
+      settlement: uniswap12MSettlement,
+      isExpired: uniswap12MExpired,
+      impairment: uniswap12MImpairment,
+    },
+    {
+      protocol: "Compound",
+      maturity: "6M",
+      maturityIndex: MATURITY_6M,
+      ptBalance: compound6MPT,
+      settlement: compound6MSettlement,
+      isExpired: compound6MExpired,
+      impairment: compound6MImpairment,
+    },
+    {
+      protocol: "Compound",
+      maturity: "12M",
+      maturityIndex: MATURITY_12M,
+      ptBalance: compound12MPT,
+      settlement: compound12MSettlement,
+      isExpired: compound12MExpired,
+      impairment: compound12MImpairment,
+    },
+    {
+      protocol: "PancakeSwap",
+      maturity: "6M",
+      maturityIndex: MATURITY_6M,
+      ptBalance: pancakeswap6MPT,
+      settlement: pancakeswap6MSettlement,
+      isExpired: pancakeswap6MExpired,
+      impairment: pancakeswap6MImpairment,
+    },
+    {
+      protocol: "PancakeSwap",
+      maturity: "12M",
+      maturityIndex: MATURITY_12M,
+      ptBalance: pancakeswap12MPT,
+      settlement: pancakeswap12MSettlement,
+      isExpired: pancakeswap12MExpired,
+      impairment: pancakeswap12MImpairment,
+    },
   ];
 
   // Derive loading state directly from hooks
@@ -307,7 +449,7 @@ export default function RedeemPrincipalPage() {
 
   // Filter tokens for different tabs
   const availableToRedeem = allTokens.filter(
-    (t) => t.isExpired && (t.isSettled || !t.breachOccurred)
+    (t) => t.isExpired && (t.isSettled || !t.breachOccurred),
   );
 
   const futureRedeemable = allTokens.filter((t) => !t.isExpired);
@@ -337,7 +479,9 @@ export default function RedeemPrincipalPage() {
 
       // Move token to claimed list, persist to localStorage, and refresh
       const redeemedToken = availableToRedeem.find(
-        (t) => t.protocol === token.protocol && t.maturityIndex === token.maturityIndex
+        (t) =>
+          t.protocol === token.protocol &&
+          t.maturityIndex === token.maturityIndex,
       );
       if (redeemedToken) {
         const updatedClaimed = [...claimedTokens, redeemedToken];
@@ -450,31 +594,55 @@ export default function RedeemPrincipalPage() {
                         <Table>
                           <TableHead>
                             <TableRow sx={{ bgcolor: "#1f2937" }}>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                              >
                                 Protocol
                               </TableCell>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                              >
                                 Maturity
                               </TableCell>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }} align="right">
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                                align="right"
+                              >
                                 PT Balance
                               </TableCell>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }} align="right">
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                                align="right"
+                              >
                                 Impairment Factor
                               </TableCell>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }} align="right">
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                                align="right"
+                              >
                                 Expected Redemption
                               </TableCell>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                              >
                                 Status
                               </TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
                             {allTokens.map((token, idx) => (
-                              <TableRow key={idx} sx={{ "&:hover": { bgcolor: "#2a3f5f" } }}>
+                              <TableRow
+                                key={idx}
+                                sx={{ "&:hover": { bgcolor: "#2a3f5f" } }}
+                              >
                                 <TableCell>
-                                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 1,
+                                    }}
+                                  >
                                     <Box
                                       sx={{
                                         width: 32,
@@ -505,18 +673,34 @@ export default function RedeemPrincipalPage() {
                                   {formatUnits(token.impairmentFactor, 18)}x
                                 </TableCell>
                                 <TableCell align="right">
-                                  {calculateRedemptionValue(token)} {selectedStablecoin}
+                                  {calculateRedemptionValue(token)}{" "}
+                                  {selectedStablecoin}
                                 </TableCell>
                                 <TableCell>
                                   <Box sx={{ display: "flex", gap: 1 }}>
                                     {token.isExpired && (
-                                      <Chip label="Expired" size="small" color="success" variant="outlined" />
+                                      <Chip
+                                        label="Expired"
+                                        size="small"
+                                        color="success"
+                                        variant="outlined"
+                                      />
                                     )}
                                     {!token.isExpired && (
-                                      <Chip label="Active" size="small" color="info" variant="outlined" />
+                                      <Chip
+                                        label="Active"
+                                        size="small"
+                                        color="info"
+                                        variant="outlined"
+                                      />
                                     )}
                                     {token.breachOccurred && (
-                                      <Chip label="Breach" size="small" color="warning" variant="outlined" />
+                                      <Chip
+                                        label="Breach"
+                                        size="small"
+                                        color="warning"
+                                        variant="outlined"
+                                      />
                                     )}
                                   </Box>
                                 </TableCell>
@@ -526,7 +710,11 @@ export default function RedeemPrincipalPage() {
                         </Table>
                       </TableContainer>
                     ) : (
-                      <Typography color="text.secondary" textAlign="center" sx={{ py: 4 }}>
+                      <Typography
+                        color="text.secondary"
+                        textAlign="center"
+                        sx={{ py: 4 }}
+                      >
                         No principal tokens found
                       </Typography>
                     )}
@@ -539,9 +727,21 @@ export default function RedeemPrincipalPage() {
                     {availableToRedeem.length > 0 ? (
                       <Stack spacing={3}>
                         {availableToRedeem.map((token, idx) => (
-                          <Card key={idx} sx={{ bgcolor: "#0f1419", border: "1px solid #3b82f6" }}>
+                          <Card
+                            key={idx}
+                            sx={{
+                              bgcolor: "#0f1419",
+                              border: "1px solid #3b82f6",
+                            }}
+                          >
                             <CardContent sx={{ p: 3 }}>
-                              <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 3,
+                                }}
+                              >
                                 <Box
                                   sx={{
                                     width: 64,
@@ -564,28 +764,54 @@ export default function RedeemPrincipalPage() {
                                 </Box>
 
                                 <Box sx={{ flex: 1 }}>
-                                  <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
-                                    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 2,
+                                      mb: 1,
+                                    }}
+                                  >
+                                    <Typography
+                                      variant="h6"
+                                      sx={{ fontWeight: "bold" }}
+                                    >
                                       {token.protocol} ({token.maturity})
                                     </Typography>
                                   </Box>
 
-                                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                    PT Balance: {formatUnits(token.ptBalance, 18)} PT
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    sx={{ mb: 1 }}
+                                  >
+                                    PT Balance:{" "}
+                                    {formatUnits(token.ptBalance, 18)} PT
                                   </Typography>
 
-                                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                    Impairment Factor: {formatUnits(token.impairmentFactor, 18)}x
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    sx={{ mb: 1 }}
+                                  >
+                                    Impairment Factor:{" "}
+                                    {formatUnits(token.impairmentFactor, 18)}x
                                   </Typography>
 
-                                  <Typography variant="body2" color="text.secondary">
-                                    Redemption Amount: {calculateRedemptionValue(token)} {selectedStablecoin}
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                  >
+                                    Redemption Amount:{" "}
+                                    {calculateRedemptionValue(token)}{" "}
+                                    {selectedStablecoin}
                                   </Typography>
 
                                   {token.breachOccurred && (
                                     <Alert severity="warning" sx={{ mt: 2 }}>
                                       <Typography variant="body2">
-                                        Breach occurred. PT value reduced by insurance payouts.
+                                        Breach occurred. PT value reduced by
+                                        insurance payouts.
                                       </Typography>
                                     </Alert>
                                   )}
@@ -595,7 +821,8 @@ export default function RedeemPrincipalPage() {
                                   variant="contained"
                                   disabled={
                                     pendingTokenKey ===
-                                      `${token.protocol}-${token.maturityIndex}` || isPending
+                                      `${token.protocol}-${token.maturityIndex}` ||
+                                    isPending
                                   }
                                   onClick={() => handleOpenRedeemDialog(token)}
                                   sx={{
@@ -618,7 +845,11 @@ export default function RedeemPrincipalPage() {
                         ))}
                       </Stack>
                     ) : (
-                      <Typography color="text.secondary" textAlign="center" sx={{ py: 4 }}>
+                      <Typography
+                        color="text.secondary"
+                        textAlign="center"
+                        sx={{ py: 4 }}
+                      >
                         No tokens available for redemption yet
                       </Typography>
                     )}
@@ -633,28 +864,50 @@ export default function RedeemPrincipalPage() {
                         <Table>
                           <TableHead>
                             <TableRow sx={{ bgcolor: "#1f2937" }}>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                              >
                                 Protocol
                               </TableCell>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                              >
                                 Maturity
                               </TableCell>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }} align="right">
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                                align="right"
+                              >
                                 PT Balance
                               </TableCell>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }} align="right">
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                                align="right"
+                              >
                                 Current Impairment
                               </TableCell>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }} align="center">
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                                align="center"
+                              >
                                 Maturity Date
                               </TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
                             {futureRedeemable.map((token, idx) => (
-                              <TableRow key={idx} sx={{ "&:hover": { bgcolor: "#2a3f5f" } }}>
+                              <TableRow
+                                key={idx}
+                                sx={{ "&:hover": { bgcolor: "#2a3f5f" } }}
+                              >
                                 <TableCell>
-                                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 1,
+                                    }}
+                                  >
                                     <Box
                                       sx={{
                                         width: 32,
@@ -685,7 +938,14 @@ export default function RedeemPrincipalPage() {
                                   {formatUnits(token.impairmentFactor, 18)}x
                                 </TableCell>
                                 <TableCell align="center">
-                                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      gap: 1,
+                                    }}
+                                  >
                                     <Schedule sx={{ fontSize: "1rem" }} />
                                     {formatDate(token.expiryTime)}
                                   </Box>
@@ -696,7 +956,11 @@ export default function RedeemPrincipalPage() {
                         </Table>
                       </TableContainer>
                     ) : (
-                      <Typography color="text.secondary" textAlign="center" sx={{ py: 4 }}>
+                      <Typography
+                        color="text.secondary"
+                        textAlign="center"
+                        sx={{ py: 4 }}
+                      >
                         No future redeemable tokens
                       </Typography>
                     )}
@@ -711,25 +975,44 @@ export default function RedeemPrincipalPage() {
                         <Table>
                           <TableHead>
                             <TableRow sx={{ bgcolor: "#1f2937" }}>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                              >
                                 Protocol
                               </TableCell>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                              >
                                 Maturity
                               </TableCell>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }} align="right">
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                                align="right"
+                              >
                                 PT Redeemed
                               </TableCell>
-                              <TableCell sx={{ color: "#fff", fontWeight: "bold" }} align="right">
+                              <TableCell
+                                sx={{ color: "#fff", fontWeight: "bold" }}
+                                align="right"
+                              >
                                 Redeemed Amount
                               </TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
                             {claimedTokens.map((token, idx) => (
-                              <TableRow key={idx} sx={{ "&:hover": { bgcolor: "#2a3f5f" } }}>
+                              <TableRow
+                                key={idx}
+                                sx={{ "&:hover": { bgcolor: "#2a3f5f" } }}
+                              >
                                 <TableCell>
-                                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 1,
+                                    }}
+                                  >
                                     <Box
                                       sx={{
                                         width: 32,
@@ -756,8 +1039,12 @@ export default function RedeemPrincipalPage() {
                                 <TableCell align="right">
                                   {formatUnits(token.ptBalance, 18)}
                                 </TableCell>
-                                <TableCell align="right" sx={{ color: "#10b981", fontWeight: "bold" }}>
-                                  {calculateRedemptionValue(token)} {selectedStablecoin}
+                                <TableCell
+                                  align="right"
+                                  sx={{ color: "#10b981", fontWeight: "bold" }}
+                                >
+                                  {calculateRedemptionValue(token)}{" "}
+                                  {selectedStablecoin}
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -765,7 +1052,11 @@ export default function RedeemPrincipalPage() {
                         </Table>
                       </TableContainer>
                     ) : (
-                      <Typography color="text.secondary" textAlign="center" sx={{ py: 4 }}>
+                      <Typography
+                        color="text.secondary"
+                        textAlign="center"
+                        sx={{ py: 4 }}
+                      >
                         No claimed tokens yet
                       </Typography>
                     )}
@@ -794,13 +1085,26 @@ export default function RedeemPrincipalPage() {
                   You are about to redeem Principal Tokens for:
                 </Typography>
                 <Card sx={{ bgcolor: "#0f1419", p: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                    {selectedRedeemToken.protocol} ({selectedRedeemToken.maturity})
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: "bold", mb: 1 }}
+                  >
+                    {selectedRedeemToken.protocol} (
+                    {selectedRedeemToken.maturity})
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    PT Balance: {formatUnits(selectedRedeemToken.ptBalance, 18)} PT
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 1 }}
+                  >
+                    PT Balance: {formatUnits(selectedRedeemToken.ptBalance, 18)}{" "}
+                    PT
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 2 }}
+                  >
                     Estimated Redemption:{" "}
                     <span style={{ color: "#10b981", fontWeight: "bold" }}>
                       {calculateRedemptionValue(selectedRedeemToken)}
@@ -843,7 +1147,11 @@ export default function RedeemPrincipalPage() {
               disabled={isPending}
               sx={{ bgcolor: "#3b82f6" }}
             >
-              {isPending ? <CircularProgress size={20} /> : "Confirm Redemption"}
+              {isPending ? (
+                <CircularProgress size={20} />
+              ) : (
+                "Confirm Redemption"
+              )}
             </Button>
           </DialogActions>
         </Dialog>
