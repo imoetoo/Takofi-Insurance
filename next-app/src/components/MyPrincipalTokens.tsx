@@ -77,18 +77,18 @@ export default function MyPrincipalTokens() {
 
   // Fetch balances for all protocols and maturities
   const balanceQueries = uniqueProtocols.flatMap((protocol) => [
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     {
       protocol,
       maturity: "6M",
       maturityIndex: MATURITY_6M,
+      // eslint-disable-next-line react-hooks/rules-of-hooks
       data: useUserPTByMaturity(address, protocol, MATURITY_6M),
     },
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     {
       protocol,
       maturity: "12M",
       maturityIndex: MATURITY_12M,
+      // eslint-disable-next-line react-hooks/rules-of-hooks
       data: useUserPTByMaturity(address, protocol, MATURITY_12M),
     },
   ]);
