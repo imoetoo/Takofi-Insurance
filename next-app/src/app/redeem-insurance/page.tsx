@@ -1622,23 +1622,23 @@ function ClaimsTable({
               <TableCell>
                 <Stack direction="row" spacing={1}>
                   {claim.status === 0 && onEditClaim && (
-                    <Tooltip title="Edit Claim">
-                      <IconButton
-                        size="small"
-                        onClick={() => onEditClaim(claim)}
-                      >
-                        <Edit />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                  <Tooltip title="View Details">
-                    <IconButton
+                    <Button
                       size="small"
-                      onClick={() => onViewClaim?.(claim)}
+                      variant="contained"
+                      onClick={() => onEditClaim(claim)}
+                      sx={{ textTransform: "none", fontSize: "0.75rem", bgcolor: "#3b82f6", "&:hover": { bgcolor: "#2563eb" } }}
                     >
-                      <Visibility />
-                    </IconButton>
-                  </Tooltip>
+                      Edit Claim
+                    </Button>
+                  )}
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => onViewClaim?.(claim)}
+                    sx={{ textTransform: "none", fontSize: "0.75rem", bgcolor: "#3b82f6", "&:hover": { bgcolor: "#2563eb" } }}
+                  >
+                    Claim Details
+                  </Button>
                 </Stack>
               </TableCell>
             </TableRow>

@@ -12,7 +12,8 @@
     "deploy:all"    : "hardhat run scripts/deployAll.js --network localhost",
     "mint"          : "hardhat run --network localhost scripts/mintTokensToAccount.js",
     "addresses"     : "hardhat run --network localhost scripts/getTokenAddresses.js",
-    "bal"           : "hardhat run --network localhost scripts/analyzeBalances.js"    
+    "bal"           : "hardhat run --network localhost scripts/analyzeBalances.js" ,
+    "ff"            : "hardhat run --network localhost scripts/fastForwardTo6MMaturity.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",

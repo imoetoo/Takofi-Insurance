@@ -514,7 +514,6 @@ export default function MintTokens() {
                       amount={state.inputAmount}
                       onAmountChange={handleInputAmountChange}
                       placeholder="0"
-                      helperText="$0"
                     />
                   </Box>
 
