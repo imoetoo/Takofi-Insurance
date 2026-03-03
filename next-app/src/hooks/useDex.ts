@@ -89,6 +89,7 @@ const DEX_ABI = [
     inputs: [
       { internalType: "address", name: "base", type: "address" },
       { internalType: "address", name: "quote", type: "address" },
+      { internalType: "uint256", name: "maturityIndex", type: "uint256" },
       { internalType: "uint8", name: "action", type: "uint8" },
     ],
     name: "getBestPrice",
@@ -208,7 +209,7 @@ type GetOrderResult = readonly [
   bigint, // filled
   bigint, // price
   bigint, // ts
-  boolean // active
+  boolean, // active
 ];
 
 interface UseDexProps {
@@ -268,14 +269,14 @@ export function useDex({
     address: dexAddress,
     abi: DEX_ABI,
     functionName: "getBestPrice",
-    args: [baseToken, quoteToken, 1], // 1 for SELL orders (best ask for buyers)
+    args: [baseToken, quoteToken, BigInt(maturityIndex), 1], // 1 for SELL orders (best ask for buyers)
   });
 
   const { data: bestSellPrice } = useReadContract({
     address: dexAddress,
     abi: DEX_ABI,
     functionName: "getBestPrice",
-    args: [baseToken, quoteToken, 0], // 0 for BUY orders (best bid for sellers)
+    args: [baseToken, quoteToken, BigInt(maturityIndex), 0], // 0 for BUY orders (best bid for sellers)
   });
 
   // Watch for new orders
@@ -372,7 +373,7 @@ export function useDex({
       }
       return orders;
     },
-    [dexAddress]
+    [dexAddress],
   );
 
   // Load order book details
@@ -423,7 +424,7 @@ export function useDex({
   const placeOrder = async (
     action: OrderType,
     amount: string,
-    price: string
+    price: string,
   ) => {
     if (!address) throw new Error("Wallet not connected");
     if (!publicClient) throw new Error("Public client not available");
