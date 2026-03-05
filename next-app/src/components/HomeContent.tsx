@@ -11,7 +11,14 @@ import {
   CardContent,
   Box,
 } from "@mui/material";
-import { TrendingUp, Shield, Lock } from "@mui/icons-material";
+import {
+  TrendingUp,
+  Shield,
+  Lock,
+  SwapHoriz,
+  VerifiedUser,
+  AccountBalance,
+} from "@mui/icons-material";
 
 // Import styles
 import * as homeContentStyles from "@/styles/homeContentStyles";
@@ -44,9 +51,9 @@ export default function HomeContent() {
 
           {/* Subtitle */}
           <Typography variant="h5" sx={homeContentStyles.heroSubtitleStyles}>
-            Protect your DeFi investments with cutting-edge insurance tokens.
-            Mint, trade, and earn yields while safeguarding your digital assets
-            against smart contract risks.
+            Protect your DeFi investments with insurance tokens, trade on a
+            built-in DEX order book, submit breach claims, and redeem principal
+            at maturity — all in one protocol.
           </Typography>
 
           {/* Connection Status */}
@@ -116,10 +123,10 @@ export default function HomeContent() {
                 variant="h3"
                 sx={homeContentStyles.statsValueStyles.blue}
               >
-                $0M+
+                6
               </Typography>
               <Typography sx={homeContentStyles.statsLabelStyles}>
-                Total Value Locked
+                Protocols Covered
               </Typography>
             </div>
             <div className={homeContentStyles.classNames.statsItem}>
@@ -127,10 +134,10 @@ export default function HomeContent() {
                 variant="h3"
                 sx={homeContentStyles.statsValueStyles.purple}
               >
-                4+
+                11
               </Typography>
               <Typography sx={homeContentStyles.statsLabelStyles}>
-                Protocols Protected
+                Smart Contracts
               </Typography>
             </div>
             <div className={homeContentStyles.classNames.statsItem}>
@@ -138,10 +145,10 @@ export default function HomeContent() {
                 variant="h3"
                 sx={homeContentStyles.statsValueStyles.green}
               >
-                0+
+                2
               </Typography>
               <Typography sx={homeContentStyles.statsLabelStyles}>
-                Active Users
+                Maturity Options
               </Typography>
             </div>
           </div>
@@ -194,7 +201,7 @@ export default function HomeContent() {
                     ...commonStyles.commonSpacing.smallMargin,
                   }}
                 >
-                  Smart Contract Protection
+                  Insurance Marketplace
                 </Typography>
                 <Typography
                   sx={{
@@ -202,8 +209,8 @@ export default function HomeContent() {
                     ...commonStyles.commonSpacing.mediumMargin,
                   }}
                 >
-                  Safeguard your DeFi investments against protocol
-                  vulnerabilities and risks.
+                  Browse and trade insurance tokens across 6 covered protocols
+                  with 6-month and 12-month maturities.
                 </Typography>
                 <Link href="/insurance-market">
                   <Button
@@ -216,7 +223,7 @@ export default function HomeContent() {
               </CardContent>
             </Card>
 
-            {/* Yield Generation */}
+            {/* Principal Marketplace */}
             <Card
               sx={{
                 ...homeContentStyles.featureCardStyles,
@@ -238,7 +245,7 @@ export default function HomeContent() {
                     ...commonStyles.commonSpacing.smallMargin,
                   }}
                 >
-                  Yield Optimization
+                  Principal Marketplace
                 </Typography>
                 <Typography
                   sx={{
@@ -246,8 +253,8 @@ export default function HomeContent() {
                     ...commonStyles.commonSpacing.mediumMargin,
                   }}
                 >
-                  Maximize returns by trading principal tokens while maintaining
-                  exposure to underlying assets.
+                  Trade principal tokens to optimise yields while maintaining
+                  exposure to underlying DeFi assets.
                 </Typography>
                 <Link href="/principal-market">
                   <Button
@@ -260,7 +267,7 @@ export default function HomeContent() {
               </CardContent>
             </Card>
 
-            {/* Easy Minting */}
+            {/* Token Minting */}
             <Card
               sx={{
                 ...homeContentStyles.featureCardStyles,
@@ -282,7 +289,7 @@ export default function HomeContent() {
                     ...commonStyles.commonSpacing.smallMargin,
                   }}
                 >
-                  Seamless Token Minting
+                  Token Minting
                 </Typography>
                 <Typography
                   sx={{
@@ -290,8 +297,8 @@ export default function HomeContent() {
                     ...commonStyles.commonSpacing.mediumMargin,
                   }}
                 >
-                  Convert your USDT/USDC into insurance and principal tokens
-                  with our intuitive process.
+                  Deposit USDT or USDC to mint paired insurance and principal
+                  tokens for any supported protocol.
                 </Typography>
                 <Link href="/mint-tokens">
                   <Button
@@ -300,6 +307,140 @@ export default function HomeContent() {
                     disabled={!isConnected}
                   >
                     {isConnected ? "Start Minting" : "Connect Wallet"}
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* DEX Order Book */}
+            <Card
+              sx={{
+                ...homeContentStyles.featureCardStyles,
+                ...homeContentStyles.featureCardHoverStyles.blue,
+              }}
+            >
+              <CardContent sx={homeContentStyles.cardContentStyles}>
+                <div
+                  className={
+                    homeContentStyles.classNames.featureIconContainer.blue
+                  }
+                >
+                  <SwapHoriz sx={{ color: "white" }} fontSize="large" />
+                </div>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    ...homeContentStyles.cardTitleStyles,
+                    ...commonStyles.commonSpacing.smallMargin,
+                  }}
+                >
+                  DEX Order Book
+                </Typography>
+                <Typography
+                  sx={{
+                    ...homeContentStyles.cardDescriptionStyles,
+                    ...commonStyles.commonSpacing.mediumMargin,
+                  }}
+                >
+                  Place limit and market orders on our on-chain order book to
+                  buy and sell tokens with full price discovery.
+                </Typography>
+                <Link href="/insurance-market">
+                  <Button
+                    variant="outlined"
+                    sx={homeContentStyles.featureButtonStyles.blue}
+                  >
+                    Start Trading
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Insurance Claims */}
+            <Card
+              sx={{
+                ...homeContentStyles.featureCardStyles,
+                ...homeContentStyles.featureCardHoverStyles.green,
+              }}
+            >
+              <CardContent sx={homeContentStyles.cardContentStyles}>
+                <div
+                  className={
+                    homeContentStyles.classNames.featureIconContainer.green
+                  }
+                >
+                  <VerifiedUser sx={{ color: "white" }} fontSize="large" />
+                </div>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    ...homeContentStyles.cardTitleStyles,
+                    ...commonStyles.commonSpacing.smallMargin,
+                  }}
+                >
+                  Insurance Claims
+                </Typography>
+                <Typography
+                  sx={{
+                    ...homeContentStyles.cardDescriptionStyles,
+                    ...commonStyles.commonSpacing.mediumMargin,
+                  }}
+                >
+                  Submit breach claims with evidence, track approval status, and
+                  receive insurance payouts when protocols are compromised.
+                </Typography>
+                <Link href="/redeem-insurance">
+                  <Button
+                    variant="outlined"
+                    sx={homeContentStyles.featureButtonStyles.green}
+                    disabled={!isConnected}
+                  >
+                    {isConnected ? "File a Claim" : "Connect Wallet"}
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Principal Redemption */}
+            <Card
+              sx={{
+                ...homeContentStyles.featureCardStyles,
+                ...homeContentStyles.featureCardHoverStyles.purple,
+              }}
+            >
+              <CardContent sx={homeContentStyles.cardContentStyles}>
+                <div
+                  className={
+                    homeContentStyles.classNames.featureIconContainer.purple
+                  }
+                >
+                  <AccountBalance sx={{ color: "white" }} fontSize="large" />
+                </div>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    ...homeContentStyles.cardTitleStyles,
+                    ...commonStyles.commonSpacing.smallMargin,
+                  }}
+                >
+                  Principal Redemption
+                </Typography>
+                <Typography
+                  sx={{
+                    ...homeContentStyles.cardDescriptionStyles,
+                    ...commonStyles.commonSpacing.mediumMargin,
+                  }}
+                >
+                  Redeem principal tokens for stablecoins after maturity
+                  settlement, with transparent impairment factors.
+                </Typography>
+                <Link href="/redeem-principal">
+                  <Button
+                    variant="outlined"
+                    sx={homeContentStyles.featureButtonStyles.purple}
+                    disabled={!isConnected}
+                  >
+                    {isConnected ? "Redeem Tokens" : "Connect Wallet"}
                   </Button>
                 </Link>
               </CardContent>
@@ -325,7 +466,7 @@ export default function HomeContent() {
               variant="h6"
               sx={homeContentStyles.sectionSubtitleStyles}
             >
-              Three simple steps to protect and grow your DeFi investments
+              Four simple steps to protect and grow your DeFi investments
             </Typography>
           </div>
 
@@ -369,8 +510,8 @@ export default function HomeContent() {
               <Typography
                 sx={homeContentStyles.howItWorksStepDescriptionStyles}
               >
-                Receive insurance and principal tokens that represent your
-                protected investment and yield potential.
+                Choose a protocol and maturity, then mint paired insurance and
+                principal tokens in a single transaction.
               </Typography>
             </div>
 
@@ -386,13 +527,35 @@ export default function HomeContent() {
                 variant="h5"
                 sx={homeContentStyles.howItWorksStepTitleStyles}
               >
-                Trade & Earn
+                Trade on the DEX
               </Typography>
               <Typography
                 sx={homeContentStyles.howItWorksStepDescriptionStyles}
               >
-                Trade your tokens in our markets or hold them to earn yields
-                while staying protected.
+                Place limit or market orders on the on-chain order book to buy
+                and sell insurance or principal tokens.
+              </Typography>
+            </div>
+
+            <div className={homeContentStyles.classNames.howItWorksItem}>
+              <div
+                className={
+                  homeContentStyles.classNames.howItWorksStepIcon.step4
+                }
+              >
+                4
+              </div>
+              <Typography
+                variant="h5"
+                sx={homeContentStyles.howItWorksStepTitleStyles}
+              >
+                Claim or Redeem
+              </Typography>
+              <Typography
+                sx={homeContentStyles.howItWorksStepDescriptionStyles}
+              >
+                File insurance claims if a protocol is breached, or redeem
+                principal tokens for stablecoins at maturity.
               </Typography>
             </div>
           </div>

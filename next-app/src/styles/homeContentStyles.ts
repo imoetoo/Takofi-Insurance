@@ -290,7 +290,7 @@ export const classNames = {
 
   // How it works section
   howItWorksSection: "py-20 bg-black",
-  howItWorksGrid: "grid grid-cols-1 md:grid-cols-3 gap-12",
+  howItWorksGrid: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12",
   howItWorksItem: "text-center",
   howItWorksStepIcon: {
     step1:
@@ -299,6 +299,8 @@ export const classNames = {
       "w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white",
     step3:
       "w-20 h-20 bg-gradient-to-r from-pink-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white",
+    step4:
+      "w-20 h-20 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white",
   },
 
   // CTA section

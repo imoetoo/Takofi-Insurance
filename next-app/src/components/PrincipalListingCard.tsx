@@ -87,8 +87,8 @@ export default function PrincipalListingCard({
     PROTOCOL_TOKENS[protocolKey as keyof typeof PROTOCOL_TOKENS]
       ?.principalToken;
 
-  // Use DEX hook to get best sell price (lowest ask = lowest price in order book)
-  const { bestBuyPrice } = useDex({
+  // Use DEX hook to get the lowest sell price (best ask) from the order book
+  const { bestSellPrice } = useDex({
     dexAddress: DEX_CONTRACT_ADDRESS,
     baseToken: principalTokenAddress || ("0x0" as `0x${string}`),
     quoteToken: USDT_ADDRESS,
@@ -97,11 +97,9 @@ export default function PrincipalListingCard({
 
   // Format the lowest price display
   const formatLowestPrice = (): string => {
-    // bestBuyPrice from useDex is the best sell price (lowest ask for buyers)
-    // Actually bestSellPrice in useDex is best bid; bestBuyPrice is best ask
-    // Let's check: useDex returns bestBuyPrice from getBestPrice(action=1) = SELL orders = best ask
-    // So bestBuyPrice is the lowest sell order price = what we want
-    const priceVal = parseFloat(bestBuyPrice);
+    // bestSellPrice from useDex calls getBestPrice(action=0=BUY) which returns
+    // sellOrders[0] = the lowest sell order price (best ask for buyers)
+    const priceVal = parseFloat(bestSellPrice);
     if (priceVal > 0) {
       return `${priceVal.toFixed(4)} USDT`;
     }
